@@ -12,19 +12,23 @@ export async function runAttackChecks(config) {
       || app.pathname !== '/' || app.hostname.endsWith('.example')) {
     throw new Error('aleph.config.json의 실제 배포 주소를 먼저 넣어 주세요.');
   }
-  if (typeof config.sampleMarker !== 'string' || !config.sampleMarker) throw new Error('가상 메모의 확인 표시를 넣어 주세요.');
+  if (config.step === 1 && (typeof config.sampleMarker !== 'string' || !config.sampleMarker)) {
+    throw new Error('가상 메모의 확인 표시를 넣어 주세요.');
+  }
   const response = await fetch(new URL('/data.json', app), {
     redirect: 'error', signal: AbortSignal.timeout(10000),
   });
   let visible = false;
   let empty = false;
+  let staticText = '';
   if (response.ok) {
     try {
-      const data = await response.json();
+      staticText = await response.text();
+      const data = JSON.parse(staticText);
       visible = data?.sampleMarker === config.sampleMarker && Array.isArray(data.notes)
         && data.notes.length > 0;
-      empty = data?.sampleMarker === config.sampleMarker && Array.isArray(data.notes)
-        && data.notes.length === 0 && Object.keys(data).sort().join(',') === 'notes,sampleMarker';
+      empty = Array.isArray(data?.notes) && data.notes.length === 0
+        && Object.keys(data).join(',') === 'notes';
     } catch {
       // A non-JSON response is a failed check, not a successful deployment.
     }
@@ -60,6 +64,20 @@ export async function runAttackChecks(config) {
     results.push({ attackId: 'public_api_write_rejected', expected: 'POST 요청을 HTTP 405로 거부',
       observed: writeResponse.status === 405 ? 'HTTP 405: 쓰기 요청 거부; 인증 검사가 아닌 메서드 제한'
         : `HTTP ${writeResponse.status}: 쓰기 요청 거부 점검 실패` });
+    const marker = 'SAMPLE_NOTE_1';
+    const failures = [];
+    if (response.status !== 200 || staticText.includes(marker)) failures.push('/data.json');
+    for (const path of ['/', '/index.html', '/aleph.json']) {
+      const staticResponse = await fetch(new URL(path, app), {
+        redirect: 'error', signal: AbortSignal.timeout(10000),
+        headers: { 'Cache-Control': 'no-cache' },
+      });
+      if (staticResponse.status !== 200 || (await staticResponse.text()).includes(marker)) failures.push(path);
+    }
+    results.push({ attackId: 'static_stage1_marker_absent',
+      expected: '정적 응답 네 경로에 1단계 확인 표시가 없음',
+      observed: failures.length ? `정적 표시 점검 실패: ${failures.join(', ')}`
+        : '정적 응답 네 경로 HTTP 200; 1단계 확인 표시 없음' });
     return results;
   }
   return [{ attackId: 'anonymous_note_read', expected: '비로그인 화면에서 가상 메모를 확인',

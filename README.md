@@ -7,7 +7,7 @@
 
 ## 현재 기능과 실행
 
-- `data.json`과 `public/data.json`은 빈 메모 목록입니다. 빌드는 메모 원본을 읽거나 복사하지 않습니다.
+- `data.json`과 `public/data.json`은 확인 표시 없는 `{ "notes": [] }`입니다. 빌드는 메모 원본을 읽거나 복사하지 않습니다.
 - 자료실 화면은 `/api/notes`를 통해 Supabase `public.notes`에서 가상 메모 네 건을 읽어 카드로 표시합니다. 정적 JSON은 읽지 않습니다.
 - 배포 빌드는 현재 단계와 저장소·커밋·배포 URL을 `public/aleph.json`에 기록합니다.
 - 로컬 빌드: `node scripts/build-public.mjs --local`.
@@ -17,11 +17,13 @@
 
 2026-10-06 저장점: 정적 JSON의 메모 제거, 본문을 복사하지 않는 빌드, 환경변수를 읽는 Vercel 서버 함수, 서버 API를 호출하는 화면, 최신 파일 검색 절차를 보존했습니다. `step: 2`와 Git 원격·운영 배포 주소가 일치하며 로그인 발급자는 `null`, 허용 경로는 빈 배열입니다. 2단계에는 로그인·소유자 검사를 구현하지 않았습니다. `judgeIssuer`는 원래 값을 보존했고 원본 API·복구 경로는 아직 `null`입니다. 판정기는 실제 구현된 기본 거부 규칙 `starter.deny`만 유지하며, 이 판정기가 공개 메모 API를 보호한다고 주장하지 않습니다.
 
-실제 배포 자기 점검: 정적 `/data.json`은 빈 목록, 공개 `GET /api/notes`는 HTTP 200으로 가상 메모 네 건을 반환하고 화면에도 네 카드가 보입니다. `POST /api/notes`는 405입니다. Supabase 관리자 SELECT로 네 건, `owner_id uuid`, RLS 활성화, anon·authenticated 읽기 권한 없음, service_role 읽기 허용, 외래키·정책 0개를 확인했습니다. 공개 API의 로그인·소유자 검사와 과거 노출 해소는 완료하지 않았습니다. 실제 심판 판정은 받지 않았습니다.
+운영 연결 확인 당시 정적 `/data.json`은 빈 목록, 공개 `GET /api/notes`는 HTTP 200으로 가상 메모 네 건을 반환하고 화면에도 네 카드가 보였습니다. `POST /api/notes`는 405입니다. Supabase 관리자 SELECT로 네 건, `owner_id uuid`, RLS 활성화, anon·authenticated 읽기 권한 없음, service_role 읽기 허용, 외래키·정책 0개를 확인했습니다. 이후 심판에서 `S02_MARKER_IN_STATIC` 미통과 피드백을 받았습니다. 이번 수정 뒤 심판 통과는 아직 확인하지 않았으며, 공개 API의 로그인·소유자 검사와 과거 노출 해소도 완료하지 않았습니다.
+
+심판 지적 수정: 빈 정적 JSON과 배포 식별 JSON에 남은 1단계 확인 표시를 제거했습니다. 2단계 빌드는 이를 생성하지 않고, 로컬 빌드는 예전 배포 식별 파일을 정리합니다. 단계 설정에서도 확인 표시를 제거했습니다. 자기 점검에는 `/`, `/index.html`, `/data.json`, `/aleph.json`의 HTTP 200과 표시 부재를 실제 요청으로 확인하는 항목을 추가했습니다. 1단계 기능은 별도 검사로 보존합니다.
 
 다시 실행: `node scripts/build-public.mjs --local`로 빈 정적 파일을 만들고 `node --test test/*.test.mjs`로 로컬 검사를 실행합니다. 배포 첫 화면과 `/data.json`을 열어 비교하며, 설정 후에는 첫 화면의 네 카드가 정상 결과입니다. POST는 거부되어야 하지만 공개 GET의 성공은 아직 인증 보호를 뜻하지 않습니다.
 
-제출 묶음은 저장점 커밋 후 `npm run bundle`로 만듭니다. 자기 점검은 정적 목록, 공개 API 조회, 쓰기 거부를 실제 요청으로 기록하며 심판 판정과 구분합니다. `bundle-notes.json`과 `artifacts/submission.json`은 Git에 넣지 않습니다. 조회 설정이 완료되어 `blockedAt`은 `null`로 갱신하며, 공개 API와 과거 노출의 한계는 설명에 남깁니다.
+제출 묶음은 저장점 커밋 후 `npm run bundle`로 만듭니다. 자기 점검 네 항목은 정적 목록, 공개 API 조회, 쓰기 거부, 정적 확인 표시 부재를 실제 요청으로 기록하며 심판 판정과 구분합니다. `bundle-notes.json`과 `artifacts/submission.json`은 Git에 넣지 않습니다. 조회 설정이 완료되어 `blockedAt`은 `null`로 갱신하며, 공개 API와 과거 노출의 한계는 설명에 남깁니다.
 
 ## Supabase 가져오기와 운영 확인
 
@@ -35,7 +37,7 @@
 
 본문이 들어 있는 가져오기·보완 SQL과 네 건의 원본 백업(`local-only/data-before-step2.json`)은 `.gitignore`의 `local-only/`로 Git에서 제외됩니다. 이 폴더는 배포하는 `public/` 밖에 있으며 제출 묶음에도 넣지 않습니다. GitHub 체크아웃에는 가져오기 SQL이 없으므로 이 로컬 작업 폴더에서 실행하세요.
 
-새 정적 파일과 GitHub 최신 파일에는 메모 본문이 없어야 합니다. 이전 Git 커밋에는 1단계에서 공개했던 가상 자료가 남아 있습니다. 2026-10-06 원격 Supabase에서 메모 본문 없는 관리자 SELECT로 위 메타데이터를 확인했습니다. 공개 키를 사용하는 직접 조회와 실제 심판 판정은 확인하지 않았습니다.
+새 정적 파일과 GitHub 최신 파일에는 메모 본문이 없어야 합니다. 이전 Git 커밋에는 1단계에서 공개했던 가상 자료가 남아 있습니다. 2026-10-06 원격 Supabase에서 메모 본문 없는 관리자 SELECT로 위 메타데이터를 확인했습니다. 공개 키를 사용하는 직접 조회는 미실행이며, 정적 표시 수정 후 심판 통과는 아직 확인하지 않았습니다.
 
 제작 1 검증: Node 검사 12건과 임시 PostgreSQL 17의 세 건 가져오기 검사를 통과했습니다. 제작 2의 검증은 아래 절차와 테스트로 구분합니다.
 
@@ -51,7 +53,7 @@ Supabase 프로젝트 설정에서 프로젝트 URL과 서버 전용 Secret key�
 
 참고: [Supabase API 키](https://supabase.com/docs/guides/getting-started/api-keys), [Vercel Node.js 함수](https://vercel.com/docs/functions/runtimes/node-js).
 
-이번 저장점의 로컬 검사 18건을 통과했습니다. 모의 DB 응답으로 서버 함수→화면의 네 카드 렌더링, 실패 응답과 로그의 키 비노출, GET 이외 요청 거부, 빈 정적 JSON 유지를 확인했습니다. 임시 PostgreSQL 17에서도 네 건의 원본 일치, service_role의 읽기 허용, anon·authenticated의 읽기 거부와 RLS를 확인했습니다. 운영 확인에서는 첫 화면의 네 카드, 비로그인 GET의 HTTP 200·네 건 반환, POST의 HTTP 405, 정적 JSON의 빈 목록을 확인했습니다. 키를 사용하는 Supabase 직접 요청은 보내지 않았습니다.
+이번 저장점의 로컬 검사 19건을 통과했습니다. 모의 DB 응답으로 서버 함수→화면의 네 카드 렌더링, 실패 응답과 로그의 키 비노출, GET 이외 요청 거부, 빈 정적 JSON 유지를 확인했습니다. 복원된 메모·1단계 표시·옛 배포 메타데이터가 빌드로 다시 공개되지 않는지 검사하고, 자기 점검이 네 정적 응답의 표시 잔존과 HTTP 실패를 잡는지 확인했습니다. 임시 PostgreSQL 17에서도 네 건의 원본 일치, service_role의 읽기 허용, anon·authenticated의 읽기 거부와 RLS를 확인했습니다. 운영 연결 확인에서는 첫 화면의 네 카드, 비로그인 GET의 HTTP 200·네 건 반환, POST의 HTTP 405, 정적 JSON의 빈 목록을 확인했습니다. 키를 사용하는 Supabase 직접 요청은 보내지 않았습니다.
 
 ## 최신 파일의 가상 메모 문장 검색 절차
 
@@ -102,6 +104,7 @@ foreach ($scanPath in @('/', '/index.html', '/data.json', '/aleph.json')) {
     Path = $scanPath
     Status = [int]$scanResponse.StatusCode
     MatchingSentences = $scanCount
+    Stage1MarkerPresent = $scanResponse.Content.Contains('SAMPLE_NOTE_1')
   }
   if ($scanPath -eq '/data.json') {
     [pscustomobject]@{ NoteCount = @(($scanResponse.Content | ConvertFrom-Json).notes).Count }
@@ -116,7 +119,7 @@ foreach ($scanPath in @('/', '/index.html', '/data.json', '/aleph.json')) {
 }
 ```
 
-정상 결과는 네 경로 모두 `HTTP 200`, `MatchingSentences = 0`, 정적 JSON의 `NoteCount = 0`, `SameAsGitHubLatest = True`입니다. 커밋이 다르면 배포가 최신 GitHub 파일과 다르다고 기록하고, 배포 완료 뒤 다시 검사합니다.
+정상 결과는 네 경로 모두 `HTTP 200`, `MatchingSentences = 0`, `Stage1MarkerPresent = False`, 정적 JSON의 `NoteCount = 0`, `SameAsGitHubLatest = True`입니다. 커밋이 다르면 배포가 최신 GitHub 파일과 다르다고 기록하고, 배포 완료 뒤 다시 검사합니다.
 
 브라우저에서는 **개발자 도구 → Network → Disable cache → 새로고침 → 각 요청의 Response**를 확인합니다. `Sources`에서도 HTML과 연결된 JS·CSS를 검색합니다. 현재 스크립트는 HTML 안에 있지만, 이후 외부 정적 파일이 추가되면 그 파일의 응답까지 같은 기준으로 검사하고 경로를 기록해야 합니다. `/api/notes`는 동적 응답이므로 정적 파일 검색 결과와 분리합니다.
 
@@ -133,6 +136,8 @@ foreach ($scanPath in @('/', '/index.html', '/data.json', '/aleph.json')) {
 | 운영 배포 `/aleph.json` | HTTP 200, 일치 문장 0건, GitHub 최신 커밋과 일치 |
 
 이 결과는 **검사한 최신 정적 파일과 최신 GitHub 파일에서 원래 메모 문장이 발견되지 않았다**는 뜻입니다. Supabase 권한이나 공개 API의 접근 보호, 옛 파일의 제거, 실제 심판 판정을 증명하지 않습니다.
+
+당시 문장 검색에는 1단계 확인 표시 검사가 빠져 있었습니다. 심판의 `S02_MARKER_IN_STATIC` 지적에 따라 표시를 제거하고 위 `Stage1MarkerPresent` 검사와 제출 묶음의 정적 표시 점검을 추가했습니다. 수정 후 재제출 결과는 별도로 확인해야 합니다.
 
 ### 공개 API의 남은 약점과 과거 노출
 

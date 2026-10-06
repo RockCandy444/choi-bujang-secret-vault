@@ -41,6 +41,94 @@ Supabase 프로젝트 설정에서 프로젝트 URL과 서버 전용 Secret key�
 
 제작 2 로컬 검증: 검사 17건 통과. 모의 DB 응답으로 서버 함수→화면의 네 카드 렌더링, 실패 응답과 로그의 키 비노출, GET 이외 요청 거부, 빈 정적 JSON 유지를 확인했습니다. 임시 PostgreSQL 17에서도 네 건의 원본 일치, service_role의 읽기 허용, anon·authenticated의 읽기 거부와 RLS를 확인했습니다. 실제 Supabase 연결과 배포 화면의 네 카드 확인은 설정 이후에 진행합니다.
 
+## 최신 파일의 가상 메모 문장 검색 절차
+
+아래 두 블록을 작업 폴더의 같은 PowerShell 창에서 순서대로 실행합니다. 검색 기준은 처음 공개했던 커밋의 `data.json`에 있는 네 메모의 `content` 전체 문장입니다. 본문은 메모리에서만 비교하고 출력하지 않습니다. 검색 문장 자체를 README나 새 공개 파일에 복사하지 않습니다. 이 검사는 API 키·로그인·인증 헤더를 사용하지 않습니다.
+
+### 1. GitHub 최신 파일 검색
+
+GitHub 코드 검색 화면의 색인에 의존하지 않고 `origin/main`을 가져와 그 커밋의 모든 추적 파일을 검사합니다. 로컬 작업 파일이나 오래된 원격 추적 정보만 검사한 결과를 GitHub 최신 파일 검사로 기록하지 않습니다.
+
+```powershell
+$ErrorActionPreference = 'Stop'
+git fetch origin main
+if ($LASTEXITCODE -ne 0) { throw 'GitHub 최신 커밋을 가져오지 못했습니다.' }
+$scanCommit = (git rev-parse origin/main).Trim()
+$scanOldCommit = '82d80ba2582b77f2459d084c361c183f7c68ed8c'
+$scanOriginal = ((git show "$($scanOldCommit):data.json") -join "`n") | ConvertFrom-Json
+$scanPatterns = @($scanOriginal.notes | ForEach-Object { $_.content })
+$scanFiles = @(git ls-tree -r --name-only $scanCommit)
+$scanMatches = @()
+foreach ($scanFile in $scanFiles) {
+  $scanText = (git show "$($scanCommit):$scanFile") -join "`n"
+  $scanCount = @($scanPatterns | Where-Object { $scanText.Contains($_) }).Count
+  if ($scanCount -gt 0) {
+    $scanMatches += [pscustomobject]@{ File = $scanFile; MatchingSentences = $scanCount }
+  }
+}
+[pscustomobject]@{
+  Commit = $scanCommit
+  FilesChecked = $scanFiles.Count
+  MatchingFiles = $scanMatches.Count
+}
+$scanMatches
+```
+
+정상 결과는 `MatchingFiles = 0`입니다. 일치가 있으면 파일 경로와 일치한 문장 종류의 개수만 기록합니다. 다운로드·Git 읽기·JSON 파싱이 실패하면 미확인으로 기록하며, 0건으로 처리하지 않습니다.
+
+### 2. 현재 배포 정적 파일 검색
+
+운영 주소의 응답 원문을 검사합니다. 화면에 보이는 카드만 보고 정적 파일에 본문이 없다고 판단하지 않습니다. 현재 정적 결과물은 `public/index.html`, `public/data.json`, 빌드가 생성하는 `public/aleph.json`이며, `/`도 별도로 확인합니다.
+
+```powershell
+$scanApp = 'https://choi-bujang-secret-vault-liard.vercel.app'
+foreach ($scanPath in @('/', '/index.html', '/data.json', '/aleph.json')) {
+  $scanResponse = Invoke-WebRequest -Uri ($scanApp + $scanPath) -UseBasicParsing `
+    -Headers @{ 'Cache-Control' = 'no-cache' } -TimeoutSec 20
+  $scanCount = @($scanPatterns | Where-Object { $scanResponse.Content.Contains($_) }).Count
+  [pscustomobject]@{
+    Path = $scanPath
+    Status = [int]$scanResponse.StatusCode
+    MatchingSentences = $scanCount
+  }
+  if ($scanPath -eq '/data.json') {
+    [pscustomobject]@{ NoteCount = @(($scanResponse.Content | ConvertFrom-Json).notes).Count }
+  }
+  if ($scanPath -eq '/aleph.json') {
+    $scanIdentity = $scanResponse.Content | ConvertFrom-Json
+    [pscustomobject]@{
+      DeploymentCommit = $scanIdentity.commit
+      SameAsGitHubLatest = $scanIdentity.commit -eq $scanCommit
+    }
+  }
+}
+```
+
+정상 결과는 네 경로 모두 `HTTP 200`, `MatchingSentences = 0`, 정적 JSON의 `NoteCount = 0`, `SameAsGitHubLatest = True`입니다. 커밋이 다르면 배포가 최신 GitHub 파일과 다르다고 기록하고, 배포 완료 뒤 다시 검사합니다.
+
+브라우저에서는 **개발자 도구 → Network → Disable cache → 새로고침 → 각 요청의 Response**를 확인합니다. `Sources`에서도 HTML과 연결된 JS·CSS를 검색합니다. 현재 스크립트는 HTML 안에 있지만, 이후 외부 정적 파일이 추가되면 그 파일의 응답까지 같은 기준으로 검사하고 경로를 기록해야 합니다. `/api/notes`는 동적 응답이므로 정적 파일 검색 결과와 분리합니다.
+
+### 검색 결과 기록
+
+확인일: **2026-10-06, 한국시간**. 확인 당시 GitHub `origin/main`과 운영 배포의 커밋은 모두 `743bbb140e5af4f1a22962164e43799d7c1d72f6`이었습니다. 아래는 그 시점의 결과이며, 문서 갱신이나 재배포 뒤에는 위 절차로 최신 커밋을 다시 확인합니다.
+
+| 확인 대상 | 검색 결과 |
+|---|---|
+| GitHub 최신 커밋의 추적 파일 46개 | 메모 문장 일치 파일 0개, 일치 문장 0건 |
+| 운영 배포 `/` | HTTP 200, 일치 문장 0건 |
+| 운영 배포 `/index.html` | HTTP 200, 일치 문장 0건 |
+| 운영 배포 `/data.json` | HTTP 200, 일치 문장 0건, `notes: []` |
+| 운영 배포 `/aleph.json` | HTTP 200, 일치 문장 0건, GitHub 최신 커밋과 일치 |
+
+이 결과는 **검사한 최신 정적 파일과 최신 GitHub 파일에서 원래 메모 문장이 발견되지 않았다**는 뜻입니다. Supabase 권한이나 공개 API의 접근 보호, 옛 파일의 제거, 실제 심판 판정을 증명하지 않습니다.
+
+### 공개 API의 남은 약점과 과거 노출
+
+- 비로그인 `GET /api/notes` 확인 결과: `HTTP 503`, `NOTES_NOT_CONFIGURED`. 현재 미설정으로 조회하지 못한 상태이며, 인증 거부나 방어 성공으로 기록하지 않습니다. 실제 배포의 네 카드 표시는 아직 미확인입니다.
+- 구현상 `/api/notes`에는 로그인·소유자 검사가 없습니다. 설정 후에는 비로그인 요청도 서버 전용 키의 권한으로 메모를 읽을 수 있습니다. 정적 파일에서 본문을 지우고 RLS를 켠 것만으로 이 공개 API의 약점이 해결되지는 않습니다. 공개 키를 사용한 Supabase 직접 조회는 심판 확인 항목으로 남깁니다.
+- 옛 공개 커밋 `82d80ba2582b77f2459d084c361c183f7c68ed8c`은 현재 `main` 이력의 조상으로 남아 있으며, 그 커밋의 `data.json`에는 네 메모 본문이 있습니다. 최신 파일의 삭제가 과거 공개 커밋의 삭제를 뜻하지 않습니다.
+- 옛 Vercel 배포 URL과 파일·캐시의 삭제 또는 접근 차단은 이번 검사에서 확인하지 않았습니다. **옛 공개 커밋과 옛 배포가 남는 한 과거 노출은 해소됐다고 쓰지 않습니다.** 현재도 과거 노출 해소를 주장하지 않습니다.
+
 ## 1단계에서 했던 일: 세 걸음
 
 1. GitHub 계정을 만듭니다.

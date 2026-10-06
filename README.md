@@ -11,6 +11,16 @@
 - 로컬 빌드: `node scripts/build-public.mjs --local`.
 - 로컬 검사: `node --test test/*.test.mjs`. 로컬 검사는 실제 심판 판정이 아닙니다.
 
+## 2단계 저장점
+
+2026-10-06 저장점: 정적 JSON의 메모 제거, 본문을 복사하지 않는 빌드, 환경변수를 읽는 Vercel 서버 함수, 서버 API를 호출하는 화면, 최신 파일 검색 절차를 보존했습니다. `step: 2`와 Git 원격·운영 배포 주소가 일치하며 로그인 발급자는 `null`, 허용 경로는 빈 배열입니다. 2단계에는 로그인·소유자 검사를 구현하지 않았습니다. `judgeIssuer`는 원래 값을 보존했고 원본 API·복구 경로는 아직 `null`입니다. 판정기는 실제 구현된 기본 거부 규칙 `starter.deny`만 유지하며, 이 판정기가 공개 메모 API를 보호한다고 주장하지 않습니다.
+
+실제 배포 자기 점검: 정적 `/data.json`은 빈 목록, 공개 `GET /api/notes`는 `503 NOTES_NOT_CONFIGURED`, `POST /api/notes`는 405입니다. Supabase SQL 실행·환경변수 등록·네 카드 조회는 아직 미확인입니다. 과거 공개 커밋과 옛 배포의 노출 해소도 주장하지 않습니다.
+
+다시 실행: `node scripts/build-public.mjs --local`로 빈 정적 파일을 만들고 `node --test test/*.test.mjs`로 로컬 검사를 실행합니다. 배포 첫 화면과 `/data.json`을 열어 비교하며, 설정 후에는 첫 화면의 네 카드가 정상 결과입니다. POST는 거부되어야 하지만 공개 GET의 성공은 아직 인증 보호를 뜻하지 않습니다.
+
+제출 묶음은 저장점 커밋 후 `npm run bundle`로 만듭니다. 자기 점검은 정적 목록, 공개 API 조회, 쓰기 거부를 실제 요청으로 기록하며 심판 판정과 구분합니다. `bundle-notes.json`과 `artifacts/submission.json`은 Git에 넣지 않습니다. 현재의 설정 미완료 상태도 설명과 `blockedAt`에 남깁니다.
+
 ## Supabase 가져오기 — SQL Editor에서 실행 필요
 
 `local-only/step2-import.sql`을 학습용 Supabase 프로젝트의 **SQL Editor → New query**에 붙여 넣고 **Run**을 누릅니다. 실제 키를 입력할 필요는 없습니다. 기존 `public.notes` 테이블이 있으면 SQL은 오류로 중단해 기존 자료를 보존합니다. 새 테이블에 한 번만 실행하세요.

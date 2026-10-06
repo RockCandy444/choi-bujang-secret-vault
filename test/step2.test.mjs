@@ -66,9 +66,12 @@ test('stage 2 anonymous check rejects leaked notes and invalid responses', async
       [404, {}, false],
     ]) {
       globalThis.fetch = async (url, options) => {
-        assert.equal(String(url), `${config.publicAppUrl}/data.json`);
         assert.equal(options.redirect, 'error');
         assert.equal(options.headers, undefined);
+        if (String(url) === `${config.publicAppUrl}/api/notes`) {
+          return new Response('{}', { status: options.method === 'POST' ? 405 : 503 });
+        }
+        assert.equal(String(url), `${config.publicAppUrl}/data.json`);
         return new Response(typeof payload === 'string' ? payload : JSON.stringify(payload), { status });
       };
       const [result] = await runAttackChecks(config);
@@ -78,4 +81,30 @@ test('stage 2 anonymous check rejects leaked notes and invalid responses', async
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test('checkpoint checks distinguish public reads, missing configuration, and method rejection', async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    for (const [status, payload, expected] of [
+      [503, { error: 'NOTES_NOT_CONFIGURED' }, '네 건 조회 미확인이며 인증 거부가 아님'],
+      [200, { notes: Array.from({ length: 4 }, () => ({ title: 'test', content: 'test' })) }, '공개 주소의 약점'],
+      [502, { error: 'sensitive-upstream-error-for-test' }, '네 건 조회 미확인'],
+    ]) {
+      globalThis.fetch = async (url, options) => {
+        if (String(url).endsWith('/data.json')) {
+          return new Response(JSON.stringify({ sampleMarker: config.sampleMarker, notes: [] }));
+        }
+        assert.equal(String(url), `${config.publicAppUrl}/api/notes`);
+        if (options.method === 'POST') return new Response('{}', { status: 405 });
+        return new Response(JSON.stringify(payload), { status });
+      };
+      const results = await runAttackChecks(config);
+      assert.equal(results.length, 3);
+      assert.ok(results[1].observed.includes(expected));
+      assert.ok(!JSON.stringify(results).includes('sensitive-upstream-error-for-test'));
+      assert.equal(results[2].attackId, 'public_api_write_rejected');
+      assert.ok(results[2].observed.includes('HTTP 405'));
+    }
+  } finally { globalThis.fetch = originalFetch; }
 });

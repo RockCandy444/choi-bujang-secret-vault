@@ -1,7 +1,9 @@
 # BYTE BACK 방어전 시작 틀 R5
 
 현재 단계: **2단계 「자료를 코드 밖으로 옮깁니다」 · 제작 2** (2026-10-06).
-이 저장소는 1단계 R5 시작 틀에서 이어졌습니다. 정적 파일의 메모 본문을 제거하고 서버 조회 함수를 연결했으며, Supabase로 옮기는 SQL을 로컬에 준비했습니다. 실제 학생 자료, 토큰, 비밀키를 넣지 마세요.
+이 저장소는 1단계 R5 시작 틀에서 이어졌습니다. 정적 파일의 메모 본문을 제거하고 Supabase와 서버 조회 함수를 연결했습니다. 운영 화면의 네 카드 표시까지 확인했습니다. 실제 학생 자료, 토큰, 비밀키를 넣지 마세요.
+
+운영 배포: [내 자료실](https://choi-bujang-secret-vault-liard.vercel.app/).
 
 ## 현재 기능과 실행
 
@@ -15,25 +17,25 @@
 
 2026-10-06 저장점: 정적 JSON의 메모 제거, 본문을 복사하지 않는 빌드, 환경변수를 읽는 Vercel 서버 함수, 서버 API를 호출하는 화면, 최신 파일 검색 절차를 보존했습니다. `step: 2`와 Git 원격·운영 배포 주소가 일치하며 로그인 발급자는 `null`, 허용 경로는 빈 배열입니다. 2단계에는 로그인·소유자 검사를 구현하지 않았습니다. `judgeIssuer`는 원래 값을 보존했고 원본 API·복구 경로는 아직 `null`입니다. 판정기는 실제 구현된 기본 거부 규칙 `starter.deny`만 유지하며, 이 판정기가 공개 메모 API를 보호한다고 주장하지 않습니다.
 
-실제 배포 자기 점검: 정적 `/data.json`은 빈 목록, 공개 `GET /api/notes`는 `503 NOTES_NOT_CONFIGURED`, `POST /api/notes`는 405입니다. Supabase SQL 실행·환경변수 등록·네 카드 조회는 아직 미확인입니다. 과거 공개 커밋과 옛 배포의 노출 해소도 주장하지 않습니다.
+실제 배포 자기 점검: 정적 `/data.json`은 빈 목록, 공개 `GET /api/notes`는 HTTP 200으로 가상 메모 네 건을 반환하고 화면에도 네 카드가 보입니다. `POST /api/notes`는 405입니다. Supabase 관리자 SELECT로 네 건, `owner_id uuid`, RLS 활성화, anon·authenticated 읽기 권한 없음, service_role 읽기 허용, 외래키·정책 0개를 확인했습니다. 공개 API의 로그인·소유자 검사와 과거 노출 해소는 완료하지 않았습니다. 실제 심판 판정은 받지 않았습니다.
 
 다시 실행: `node scripts/build-public.mjs --local`로 빈 정적 파일을 만들고 `node --test test/*.test.mjs`로 로컬 검사를 실행합니다. 배포 첫 화면과 `/data.json`을 열어 비교하며, 설정 후에는 첫 화면의 네 카드가 정상 결과입니다. POST는 거부되어야 하지만 공개 GET의 성공은 아직 인증 보호를 뜻하지 않습니다.
 
-제출 묶음은 저장점 커밋 후 `npm run bundle`로 만듭니다. 자기 점검은 정적 목록, 공개 API 조회, 쓰기 거부를 실제 요청으로 기록하며 심판 판정과 구분합니다. `bundle-notes.json`과 `artifacts/submission.json`은 Git에 넣지 않습니다. 현재의 설정 미완료 상태도 설명과 `blockedAt`에 남깁니다.
+제출 묶음은 저장점 커밋 후 `npm run bundle`로 만듭니다. 자기 점검은 정적 목록, 공개 API 조회, 쓰기 거부를 실제 요청으로 기록하며 심판 판정과 구분합니다. `bundle-notes.json`과 `artifacts/submission.json`은 Git에 넣지 않습니다. 조회 설정이 완료되어 `blockedAt`은 `null`로 갱신하며, 공개 API와 과거 노출의 한계는 설명에 남깁니다.
 
-## Supabase 가져오기 — SQL Editor에서 실행 필요
+## Supabase 가져오기와 운영 확인
 
-`local-only/step2-import.sql`을 학습용 Supabase 프로젝트의 **SQL Editor → New query**에 붙여 넣고 **Run**을 누릅니다. 실제 키를 입력할 필요는 없습니다. 기존 `public.notes` 테이블이 있으면 SQL은 오류로 중단해 기존 자료를 보존합니다. 새 테이블에 한 번만 실행하세요.
+새 학습용 프로젝트에서는 `local-only/step2-import.sql`을 **SQL Editor → New query → Database**에 붙여 넣고 **Run**을 누릅니다. 이 파일은 처음 선택한 세 건을 가져옵니다. 이어서 `local-only/step2-complete.sql`을 실행하면 네 번째 메모와 서버 읽기 권한을 보완합니다. 실제 키를 SQL에 입력할 필요는 없습니다. 기존 `public.notes` 테이블이 있으면 첫 파일은 오류로 중단해 기존 자료를 보존하므로, 이미 가져온 운영 프로젝트에 다시 실행하지 않습니다.
 
-현재 SQL은 가상 메모 네 건을 `public.notes`에 넣고, `owner_id uuid`를 비워 둡니다. 이전 제작 1의 세 건에서 네 건으로 갱신했습니다. `auth.users` 외래키와 읽기 정책은 만들지 않으며 RLS를 켜고 `PUBLIC`·`anon`·`authenticated`의 테이블 권한을 회수합니다.
+현재 운영 `public.notes`에는 가상 메모 네 건이 있습니다. SQL은 `owner_id uuid`를 비워 두고 `auth.users` 외래키와 읽기 정책은 만들지 않으며, RLS를 켜고 `PUBLIC`·`anon`·`authenticated`의 테이블 권한을 회수합니다. 보완 SQL은 기존 세 건을 삭제하지 않고, 같은 네 번째 메모가 있으면 중복 삽입하지 않습니다.
 
 서버 전용 키가 사용하는 `service_role`에는 이 테이블의 SELECT만 명시적으로 부여합니다. 브라우저 역할에는 자료 읽기 권한을 주지 않습니다.
 
 실행 결과는 `note_count = 4`, `owner_id_type = uuid`, `rls_enabled = true`, `anon_can_read = false`, `authenticated_can_read = false`, `foreign_key_count = 0`, `policy_count = 0`이어야 합니다. **Table Editor → notes**에서도 `owner_id` 칸과 RLS 표시를 확인합니다. SQL Editor의 관리자 조회는 허용되고, `anon`·`authenticated`의 읽기는 거부되어야 합니다.
 
-본문이 들어 있는 가져오기 SQL과 네 건의 원본 백업(`local-only/data-before-step2.json`)은 `.gitignore`의 `local-only/`로 Git에서 제외됩니다. 이 폴더는 배포하는 `public/` 밖에 있으며 제출 묶음에도 넣지 않습니다. GitHub 체크아웃에는 가져오기 SQL이 없으므로 이 로컬 작업 폴더에서 실행하세요.
+본문이 들어 있는 가져오기·보완 SQL과 네 건의 원본 백업(`local-only/data-before-step2.json`)은 `.gitignore`의 `local-only/`로 Git에서 제외됩니다. 이 폴더는 배포하는 `public/` 밖에 있으며 제출 묶음에도 넣지 않습니다. GitHub 체크아웃에는 가져오기 SQL이 없으므로 이 로컬 작업 폴더에서 실행하세요.
 
-새 정적 파일과 GitHub 최신 파일에는 메모 본문이 없어야 합니다. 이전 Git 커밋에는 1단계에서 공개했던 가상 자료가 남아 있습니다. 원격 Supabase에서의 SQL 실행과 실제 심판 판정은 아직 확인하지 않았습니다.
+새 정적 파일과 GitHub 최신 파일에는 메모 본문이 없어야 합니다. 이전 Git 커밋에는 1단계에서 공개했던 가상 자료가 남아 있습니다. 2026-10-06 원격 Supabase에서 메모 본문 없는 관리자 SELECT로 위 메타데이터를 확인했습니다. 공개 키를 사용하는 직접 조회와 실제 심판 판정은 확인하지 않았습니다.
 
 제작 1 검증: Node 검사 12건과 임시 PostgreSQL 17의 세 건 가져오기 검사를 통과했습니다. 제작 2의 검증은 아래 절차와 테스트로 구분합니다.
 
@@ -41,7 +43,7 @@
 
 `api/notes.js`는 서버에서만 `SUPABASE_URL`과 `SUPABASE_SECRET_KEY`를 읽습니다. Supabase REST API에는 서버 키를 `apikey` 헤더로만 보내고, 브라우저에는 `title`·`content`만 반환합니다. Supabase 오류 원문·헤더·환경변수는 응답이나 로그로 내보내지 않습니다. 응답 캐시도 끕니다.
 
-Supabase 프로젝트 설정에서 프로젝트 URL과 서버 전용 Secret key를 확인한 뒤, **Vercel → choi-bujang-secret-vault → Settings → Environment Variables**에 두 이름으로 직접 입력합니다. `SUPABASE_SECRET_KEY`는 Sensitive로 등록하고 Production에 적용하세요. 키를 채팅·Git·브라우저 소스에 넣지 않습니다. 저장한 뒤 최신 배포를 **Redeploy**해야 새 환경변수가 반영됩니다. 현재 사용자는 SQL 실행과 환경변수 등록을 아직 하지 않았습니다.
+Supabase 프로젝트 설정에서 프로젝트 URL과 서버 전용 Secret key를 확인한 뒤, **Vercel → choi-bujang-secret-vault → Settings → Environment Variables**에 두 이름으로 직접 입력합니다. **Key**에는 `SUPABASE_URL` 또는 `SUPABASE_SECRET_KEY`라는 변수 이름을, **Value**에는 해당 값을 넣습니다. 서버 키는 **Type: Secret**, 환경은 **Production**으로 등록하세요. 키를 채팅·Git·브라우저 소스에 넣지 않습니다. 저장한 뒤 최신 배포를 **Redeploy**해야 새 환경변수가 반영됩니다. 운영 프로젝트는 두 변수의 Production 등록과 재배포 Ready 상태를 확인했습니다. 이번 재확인에서는 비밀 Value를 열지 않고 변수 이름과 적용 환경만 검사했습니다.
 
 정상 확인: 배포 첫 화면에서 네 카드가 보이고 `/api/notes`는 메모 목록을 반환합니다. `/data.json`은 `notes: []`를 유지합니다. 설정이 없으면 함수는 `503 NOTES_NOT_CONFIGURED`, 조회 실패는 민감한 원문 없이 `502 NOTES_UNAVAILABLE`, GET 이외의 요청은 `405 METHOD_NOT_ALLOWED`를 반환해야 합니다. 공개 키로 Supabase를 직접 읽는 요청은 심판이 확인하며, 이 구현에서는 그 검사를 실행했다고 보고하지 않습니다.
 
@@ -49,7 +51,7 @@ Supabase 프로젝트 설정에서 프로젝트 URL과 서버 전용 Secret key�
 
 참고: [Supabase API 키](https://supabase.com/docs/guides/getting-started/api-keys), [Vercel Node.js 함수](https://vercel.com/docs/functions/runtimes/node-js).
 
-제작 2 로컬 검증: 검사 17건 통과. 모의 DB 응답으로 서버 함수→화면의 네 카드 렌더링, 실패 응답과 로그의 키 비노출, GET 이외 요청 거부, 빈 정적 JSON 유지를 확인했습니다. 임시 PostgreSQL 17에서도 네 건의 원본 일치, service_role의 읽기 허용, anon·authenticated의 읽기 거부와 RLS를 확인했습니다. 실제 Supabase 연결과 배포 화면의 네 카드 확인은 설정 이후에 진행합니다.
+이번 저장점의 로컬 검사 18건을 통과했습니다. 모의 DB 응답으로 서버 함수→화면의 네 카드 렌더링, 실패 응답과 로그의 키 비노출, GET 이외 요청 거부, 빈 정적 JSON 유지를 확인했습니다. 임시 PostgreSQL 17에서도 네 건의 원본 일치, service_role의 읽기 허용, anon·authenticated의 읽기 거부와 RLS를 확인했습니다. 운영 확인에서는 첫 화면의 네 카드, 비로그인 GET의 HTTP 200·네 건 반환, POST의 HTTP 405, 정적 JSON의 빈 목록을 확인했습니다. 키를 사용하는 Supabase 직접 요청은 보내지 않았습니다.
 
 ## 최신 파일의 가상 메모 문장 검색 절차
 
@@ -120,7 +122,7 @@ foreach ($scanPath in @('/', '/index.html', '/data.json', '/aleph.json')) {
 
 ### 검색 결과 기록
 
-확인일: **2026-10-06, 한국시간**. 확인 당시 GitHub `origin/main`과 운영 배포의 커밋은 모두 `743bbb140e5af4f1a22962164e43799d7c1d72f6`이었습니다. 아래는 그 시점의 결과이며, 문서 갱신이나 재배포 뒤에는 위 절차로 최신 커밋을 다시 확인합니다.
+확인일: **2026-10-06, 한국시간**. 운영 연결 확인 당시 GitHub `origin/main`과 운영 배포의 커밋은 모두 `b3a8f6eba34a3438340b7d7c68410cdec83cbb6c`이었습니다. 아래는 그 시점의 검색 결과입니다. 이 문서 갱신 커밋이 추가되면 위 절차로 최신 파일과 배포 커밋을 다시 확인합니다.
 
 | 확인 대상 | 검색 결과 |
 |---|---|
@@ -134,8 +136,8 @@ foreach ($scanPath in @('/', '/index.html', '/data.json', '/aleph.json')) {
 
 ### 공개 API의 남은 약점과 과거 노출
 
-- 비로그인 `GET /api/notes` 확인 결과: `HTTP 503`, `NOTES_NOT_CONFIGURED`. 현재 미설정으로 조회하지 못한 상태이며, 인증 거부나 방어 성공으로 기록하지 않습니다. 실제 배포의 네 카드 표시는 아직 미확인입니다.
-- 구현상 `/api/notes`에는 로그인·소유자 검사가 없습니다. 설정 후에는 비로그인 요청도 서버 전용 키의 권한으로 메모를 읽을 수 있습니다. 정적 파일에서 본문을 지우고 RLS를 켠 것만으로 이 공개 API의 약점이 해결되지는 않습니다. 공개 키를 사용한 Supabase 직접 조회는 심판 확인 항목으로 남깁니다.
+- 비로그인 `GET /api/notes` 확인 결과: `HTTP 200`, 메모 네 건 반환. 첫 화면에서도 네 카드 표시를 확인했습니다. 이는 조회 연결의 성공이며 인증 보호 성공이나 실제 심판 판정으로 기록하지 않습니다. `POST /api/notes`는 HTTP 405로 거부됐으며, 이는 메서드 제한입니다.
+- 구현상 `/api/notes`에는 로그인·소유자 검사가 없습니다. 비로그인 요청도 서버 전용 키의 권한으로 메모를 읽을 수 있습니다. 정적 파일에서 본문을 지우고 RLS를 켠 것만으로 이 공개 API의 약점이 해결되지는 않습니다. 공개 키를 사용한 Supabase 직접 조회는 심판 확인 항목으로 남깁니다.
 - 옛 공개 커밋 `82d80ba2582b77f2459d084c361c183f7c68ed8c`은 현재 `main` 이력의 조상으로 남아 있으며, 그 커밋의 `data.json`에는 네 메모 본문이 있습니다. 최신 파일의 삭제가 과거 공개 커밋의 삭제를 뜻하지 않습니다.
 - 옛 Vercel 배포 URL과 파일·캐시의 삭제 또는 접근 차단은 이번 검사에서 확인하지 않았습니다. **옛 공개 커밋과 옛 배포가 남는 한 과거 노출은 해소됐다고 쓰지 않습니다.** 현재도 과거 노출 해소를 주장하지 않습니다.
 

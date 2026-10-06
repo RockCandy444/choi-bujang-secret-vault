@@ -1,0 +1,22 @@
+{
+  "name": "aleph-defense-starter",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-public.mjs",
+    "test:r5": "node --test test/r5.test.mjs",
+    "test:package": "node --test test/package-starter.test.mjs",
+    "bundle": "node scripts/bundle.mjs",
+    "decider:test": "node scripts/decider-test.mjs",
+    "detect:test": "node scripts/detect-test.mjs",
+    "fixture:7": "node scripts/fixture-7.mjs",
+    "xdr:run": "node scripts/xdr-run.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.117.2",
+    "jose": "6.2.12"
+  }
+}

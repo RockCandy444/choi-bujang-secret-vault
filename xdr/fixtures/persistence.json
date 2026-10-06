@@ -1,0 +1,444 @@
+{
+  "schema": "aleph.xdr.fixture.v1",
+  "moduleKey": "persistence",
+  "alerts": [
+    {
+      "id": "ps-01",
+      "timestamp": "2026-09-27T09:18:04+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "서명 없는 새 서비스가 임시 폴더의 실행 파일을 가리킵니다.",
+        "mitre": [
+          "T1543"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.12",
+        "srcuser": "user01",
+        "path": "C:\\Users\\user01\\AppData\\Local\\Temp\\helper.exe"
+      }
+    },
+    {
+      "id": "ps-02",
+      "timestamp": "2026-09-27T09:19:12+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "처음 보는 예약 작업이 임시 폴더의 프로그램을 수업 시간 밖에 실행합니다.",
+        "mitre": [
+          "T1053"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.12",
+        "srcuser": "user01",
+        "path": "C:\\Users\\user01\\AppData\\Local\\Temp\\task-run.exe"
+      }
+    },
+    {
+      "id": "ps-03",
+      "timestamp": "2026-09-27T10:06:28+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 11,
+        "description": "시작 폴더에 평소 목록에 없는 프로그램이 추가됐습니다.",
+        "mitre": [
+          "T1543"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.12",
+        "srcuser": "user02",
+        "path": "C:\\Users\\user02\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\note-helper.exe"
+      }
+    },
+    {
+      "id": "ps-04",
+      "timestamp": "2026-09-27T10:22:03+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "원격 주소에서 서명 없는 서비스 등록이 연속으로 3건입니다.",
+        "mitre": [
+          "T1543"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.12",
+        "srcuser": "user03",
+        "count": "3"
+      }
+    },
+    {
+      "id": "ps-05",
+      "timestamp": "2026-09-27T11:09:17+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 10,
+        "description": "예약 작업 이름이 임의 문자열이고 실행 파일이 임시 폴더에 있습니다.",
+        "mitre": [
+          "T1053"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.19",
+        "srcuser": "user04",
+        "path": "C:\\Users\\user04\\AppData\\Local\\Temp\\a1b2c3.exe"
+      }
+    },
+    {
+      "id": "ps-06",
+      "timestamp": "2026-09-27T13:07:45+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "서비스 실행 파일이 바뀌었고 서명이 없습니다.",
+        "mitre": [
+          "T1543"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.19",
+        "srcuser": "user05",
+        "path": "C:\\Users\\user05\\AppData\\Local\\Temp\\svc-update.exe"
+      }
+    },
+    {
+      "id": "ps-07",
+      "timestamp": "2026-09-27T14:14:08+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 11,
+        "description": "시작 프로그램과 예약 작업이 같은 임시 파일을 함께 가리킵니다.",
+        "mitre": [
+          "T1543",
+          "T1053"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.19",
+        "srcuser": "user06",
+        "path": "C:\\Users\\user06\\AppData\\Local\\Temp\\stay.exe"
+      }
+    },
+    {
+      "id": "ps-08",
+      "timestamp": "2026-09-27T15:28:31+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "평소 목록에 없는 서비스가 다시 켜도 남도록 등록됐습니다.",
+        "mitre": [
+          "T1543"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.33",
+        "srcuser": "user07",
+        "path": "C:\\Users\\user07\\AppData\\Local\\Temp\\remain.exe"
+      }
+    },
+    {
+      "id": "ps-09",
+      "timestamp": "2026-09-27T09:27:16+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 6,
+        "description": "user01 이 수업 중 예약 작업을 하나 만들었습니다. 서명은 확인되지 않았습니다.",
+        "mitre": [
+          "T1053"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.48",
+        "srcuser": "user01",
+        "path": "C:\\lab\\class-backup.cmd"
+      }
+    },
+    {
+      "id": "ps-10",
+      "timestamp": "2026-09-27T10:15:22+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 7,
+        "description": "시작 항목에 수업 도구 이름이 하나 있습니다. 서명은 아직 모릅니다.",
+        "mitre": [
+          "T1543"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.48",
+        "srcuser": "user02",
+        "path": "C:\\lab\\class-tool.exe"
+      }
+    },
+    {
+      "id": "ps-11",
+      "timestamp": "2026-09-27T10:49:05+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 5,
+        "description": "서비스 설명만 한 번 바뀌었습니다. 실행 파일은 그대로입니다.",
+        "mitre": [
+          "T1543"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.48",
+        "srcuser": "user03"
+      }
+    },
+    {
+      "id": "ps-12",
+      "timestamp": "2026-09-27T11:23:38+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 6,
+        "description": "예약 작업이 하나 있고 실행 시각은 수업 시간입니다.",
+        "mitre": [
+          "T1053"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.49",
+        "srcuser": "user04",
+        "path": "C:\\lab\\notes-sync.cmd"
+      }
+    },
+    {
+      "id": "ps-13",
+      "timestamp": "2026-09-27T12:11:09+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 8,
+        "description": "임시 폴더에 실행 파일이 하나 생겼습니다. 서비스 등록은 없습니다.",
+        "mitre": [
+          "T1543"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.49",
+        "srcuser": "user05",
+        "path": "C:\\Users\\user05\\AppData\\Local\\Temp\\draft.exe"
+      }
+    },
+    {
+      "id": "ps-14",
+      "timestamp": "2026-09-27T13:19:27+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 6,
+        "description": "시작 폴더 변경이 1건입니다. 이어서 실행된 기록은 없습니다.",
+        "mitre": [
+          "T1543"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.49",
+        "srcuser": "user06"
+      }
+    },
+    {
+      "id": "ps-15",
+      "timestamp": "2026-09-27T14:08:14+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 7,
+        "description": "예약 작업 이름이 수업 과제와 비슷하고 만든 사람은 user07 입니다.",
+        "mitre": [
+          "T1053"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.53",
+        "srcuser": "user07",
+        "path": "C:\\lab\\week3-task.cmd"
+      }
+    },
+    {
+      "id": "ps-16",
+      "timestamp": "2026-09-27T15:16:42+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 5,
+        "description": "서비스가 한 번 멈췄다가 같은 파일로 다시 시작됐습니다.",
+        "mitre": [
+          "T1543"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.53",
+        "srcuser": "svc-lab"
+      }
+    },
+    {
+      "id": "ps-17",
+      "timestamp": "2026-09-27T09:07:03+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "로그인했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "192.0.2.74",
+        "srcuser": "user01"
+      }
+    },
+    {
+      "id": "ps-18",
+      "timestamp": "2026-09-27T09:40:18+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 2,
+        "description": "운영체제 업데이트 예약이 평소 시각에 그대로입니다.",
+        "mitre": [
+          "T1053"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.74",
+        "srcuser": "svc-lab"
+      }
+    },
+    {
+      "id": "ps-19",
+      "timestamp": "2026-09-27T10:09:26+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "기존 수업 도구 서비스가 서명된 채로 실행 중입니다.",
+        "mitre": [
+          "T1543"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.74",
+        "srcuser": "svc-lab",
+        "path": "C:\\lab\\class-tool\\signed-service.exe"
+      }
+    },
+    {
+      "id": "ps-20",
+      "timestamp": "2026-09-27T11:05:12+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 2,
+        "description": "시작 프로그램 목록을 읽기만 했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "198.51.100.74",
+        "srcuser": "user02"
+      }
+    },
+    {
+      "id": "ps-21",
+      "timestamp": "2026-09-27T12:18:07+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "정의 업데이트가 평소 저장소에서 끝났습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "203.0.113.74",
+        "srcuser": "svc-lab"
+      }
+    },
+    {
+      "id": "ps-22",
+      "timestamp": "2026-09-27T13:11:33+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "로그아웃했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "203.0.113.74",
+        "srcuser": "user03"
+      }
+    },
+    {
+      "id": "ps-23",
+      "timestamp": "2026-09-27T14:21:15+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 2,
+        "description": "기존 예약 작업이 수업 자료 복사를 마쳤습니다.",
+        "mitre": [
+          "T1053"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.75",
+        "srcuser": "svc-lab",
+        "path": "C:\\lab\\copy-notes.cmd"
+      }
+    },
+    {
+      "id": "ps-24",
+      "timestamp": "2026-09-27T15:44:02+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "자료실 화면이 열렸습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "198.51.100.75",
+        "srcuser": "user04"
+      }
+    }
+  ]
+}

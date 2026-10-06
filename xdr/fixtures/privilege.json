@@ -1,0 +1,468 @@
+{
+  "schema": "aleph.xdr.fixture.v1",
+  "moduleKey": "privilege",
+  "alerts": [
+    {
+      "id": "pv-01",
+      "timestamp": "2026-09-27T09:15:06+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "user01 이 원격 주소에서 관리자 그룹에 추가됐습니다.",
+        "mitre": [
+          "T1078"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.11",
+        "srcuser": "user01",
+        "group": "administrators"
+      }
+    },
+    {
+      "id": "pv-02",
+      "timestamp": "2026-09-27T09:15:40+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "방금 관리자가 된 user01 이 관리자 명령을 실행했습니다.",
+        "mitre": [
+          "T1068",
+          "T1078"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.11",
+        "srcuser": "user01"
+      }
+    },
+    {
+      "id": "pv-03",
+      "timestamp": "2026-09-27T10:03:12+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 11,
+        "description": "수업 시간 밖에 user02 가 처음 보는 주소에서 관리자 명령을 실행했습니다.",
+        "mitre": [
+          "T1068"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.11",
+        "srcuser": "user02"
+      }
+    },
+    {
+      "id": "pv-04",
+      "timestamp": "2026-09-27T10:19:08+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "평범한 계정 user03 이 관리자 그룹에 들어가고 곧바로 권한 명령을 실행했습니다.",
+        "mitre": [
+          "T1078"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.11",
+        "srcuser": "user03",
+        "group": "administrators"
+      }
+    },
+    {
+      "id": "pv-05",
+      "timestamp": "2026-09-27T11:06:21+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 10,
+        "description": "같은 주소에서 계정 4개가 관리자 그룹에 추가됐습니다.",
+        "mitre": [
+          "T1078"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.17",
+        "srcuser": "user04",
+        "count": "4",
+        "group": "administrators"
+      }
+    },
+    {
+      "id": "pv-06",
+      "timestamp": "2026-09-27T13:08:02+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "user05 세션이 관리자 권한으로 바뀌었고 요청 주소는 처음 봅니다.",
+        "mitre": [
+          "T1068"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.17",
+        "srcuser": "user05"
+      }
+    },
+    {
+      "id": "pv-07",
+      "timestamp": "2026-09-27T14:16:29+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 11,
+        "description": "업무처럼 보이지 않는 시각에 관리자 그룹 추가와 명령 실행이 같이 있습니다.",
+        "mitre": [
+          "T1068",
+          "T1078"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.17",
+        "srcuser": "user06",
+        "group": "administrators"
+      }
+    },
+    {
+      "id": "pv-08",
+      "timestamp": "2026-09-27T15:02:18+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "user07 이 다른 계정의 권한으로 관리자 명령을 실행했습니다.",
+        "mitre": [
+          "T1068"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.27",
+        "srcuser": "user07"
+      }
+    },
+    {
+      "id": "pv-09",
+      "timestamp": "2026-09-27T15:33:07+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 10,
+        "description": "관리자 그룹에서 빠진 계정이 1분 뒤에 다시 관리자로 들어왔습니다.",
+        "mitre": [
+          "T1078"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.27",
+        "srcuser": "user08",
+        "group": "administrators",
+        "count": "2"
+      }
+    },
+    {
+      "id": "pv-10",
+      "timestamp": "2026-09-27T09:26:14+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 6,
+        "description": "수업 시간에 권한 상승 창이 한 번 뜨고 취소됐습니다.",
+        "mitre": [
+          "T1068"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.54",
+        "srcuser": "user01"
+      }
+    },
+    {
+      "id": "pv-11",
+      "timestamp": "2026-09-27T10:14:33+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 7,
+        "description": "user02 가 과제 그룹에 추가됐습니다. 관리자 그룹은 아닙니다.",
+        "mitre": [
+          "T1078"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.54",
+        "srcuser": "user02",
+        "group": "project-week3"
+      }
+    },
+    {
+      "id": "pv-12",
+      "timestamp": "2026-09-27T10:47:09+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 5,
+        "description": "평소 주소에서 관리자 명령이 한 번 실행됐습니다.",
+        "mitre": [
+          "T1068"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.54",
+        "srcuser": "user03"
+      }
+    },
+    {
+      "id": "pv-13",
+      "timestamp": "2026-09-27T11:21:16+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 6,
+        "description": "user04 가 자기 계정 종류를 조회한 뒤 변경은 없습니다.",
+        "mitre": [
+          "T1078"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.55",
+        "srcuser": "user04"
+      }
+    },
+    {
+      "id": "pv-14",
+      "timestamp": "2026-09-27T12:06:48+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 8,
+        "description": "수업 중 권한 상승이 1건 있고 이어서 명령은 없습니다.",
+        "mitre": [
+          "T1068"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.55",
+        "srcuser": "user05"
+      }
+    },
+    {
+      "id": "pv-15",
+      "timestamp": "2026-09-27T13:17:05+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 6,
+        "description": "새 로컬 그룹이 하나 만들어졌습니다. 멤버는 user06 한 명입니다.",
+        "mitre": [
+          "T1078"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.55",
+        "srcuser": "user06",
+        "group": "lab-notes"
+      }
+    },
+    {
+      "id": "pv-16",
+      "timestamp": "2026-09-27T14:07:22+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 7,
+        "description": "관리자 명령이 실패 1건으로 끝났습니다.",
+        "mitre": [
+          "T1068"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.56",
+        "srcuser": "user07"
+      }
+    },
+    {
+      "id": "pv-17",
+      "timestamp": "2026-09-27T15:19:41+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 5,
+        "description": "그룹 목록을 읽은 뒤 수업 그룹 설명만 바뀌었습니다.",
+        "mitre": [
+          "T1078"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.56",
+        "srcuser": "user08",
+        "group": "class-readers"
+      }
+    },
+    {
+      "id": "pv-18",
+      "timestamp": "2026-09-27T09:08:04+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "user01 이 로그인했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "192.0.2.76",
+        "srcuser": "user01"
+      }
+    },
+    {
+      "id": "pv-19",
+      "timestamp": "2026-09-27T09:35:19+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "그룹 소속을 읽기만 했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "192.0.2.76",
+        "srcuser": "user01"
+      }
+    },
+    {
+      "id": "pv-20",
+      "timestamp": "2026-09-27T10:07:28+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 2,
+        "description": "비밀번호를 변경했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "198.51.100.76",
+        "srcuser": "user02"
+      }
+    },
+    {
+      "id": "pv-21",
+      "timestamp": "2026-09-27T10:52:06+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "수업용 관리 계정 admin01 이 평소 주소에서 로그인했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "192.0.2.10",
+        "srcuser": "admin01"
+      }
+    },
+    {
+      "id": "pv-22",
+      "timestamp": "2026-09-27T11:13:14+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "admin01 이 로그아웃했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "192.0.2.10",
+        "srcuser": "admin01"
+      }
+    },
+    {
+      "id": "pv-23",
+      "timestamp": "2026-09-27T12:20:03+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 2,
+        "description": "자기 세션 정보를 조회했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "203.0.113.76",
+        "srcuser": "user03"
+      }
+    },
+    {
+      "id": "pv-24",
+      "timestamp": "2026-09-27T13:09:37+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "자료실을 열었습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "203.0.113.76",
+        "srcuser": "user04"
+      }
+    },
+    {
+      "id": "pv-25",
+      "timestamp": "2026-09-27T14:24:11+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "svc-lab 이 평소 예약 작업을 확인했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "198.51.100.10",
+        "srcuser": "svc-lab"
+      }
+    },
+    {
+      "id": "pv-26",
+      "timestamp": "2026-09-27T15:41:08+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 2,
+        "description": "로그아웃했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "192.0.2.77",
+        "srcuser": "user05"
+      }
+    }
+  ]
+}

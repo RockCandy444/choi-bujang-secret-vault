@@ -1,0 +1,512 @@
+{
+  "schema": "aleph.xdr.fixture.v1",
+  "moduleKey": "brute-force",
+  "alerts": [
+    {
+      "id": "bf-01",
+      "timestamp": "2026-09-27T09:12:01+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "같은 주소에서 2분 안에 로그인 실패 48건이 쌓였습니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.10",
+        "srcuser": "user01",
+        "count": "48"
+      }
+    },
+    {
+      "id": "bf-02",
+      "timestamp": "2026-09-27T09:12:40+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "같은 주소가 여러 계정에 같은 비밀번호를 연속으로 넣었습니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.10",
+        "srcuser": "user01",
+        "accounts": "user01,user02,user03,user04,user05,user06,user07,user08"
+      }
+    },
+    {
+      "id": "bf-03",
+      "timestamp": "2026-09-27T09:14:02+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 10,
+        "description": "3분 동안 로그인 실패 36건이 있고, 계정 이름을 바꿔 가며 시도했습니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.20",
+        "srcuser": "user02",
+        "count": "36"
+      }
+    },
+    {
+      "id": "bf-04",
+      "timestamp": "2026-09-27T09:20:11+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "한 계정에 2분 안 로그인 실패가 52건입니다. 성공은 없습니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.30",
+        "srcuser": "user02",
+        "count": "52"
+      }
+    },
+    {
+      "id": "bf-05",
+      "timestamp": "2026-09-27T09:21:00+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 11,
+        "description": "같은 주소가 계정 20개에 같은 간격으로 로그인 실패를 넣었습니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.21",
+        "srcuser": "user03",
+        "count": "20"
+      }
+    },
+    {
+      "id": "bf-06",
+      "timestamp": "2026-09-27T11:02:15+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "1분 안에 로그인 실패 61건이 같은 주소에 쌓였습니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.44",
+        "srcuser": "user03",
+        "count": "61"
+      }
+    },
+    {
+      "id": "bf-07",
+      "timestamp": "2026-09-27T11:05:40+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 10,
+        "description": "비밀번호를 한 글자씩 바꿔 넣는 실패가 40건입니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.15",
+        "srcuser": "user04",
+        "count": "40"
+      }
+    },
+    {
+      "id": "bf-08",
+      "timestamp": "2026-09-27T13:10:02+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "같은 주소와 같은 계정에서 로그인 실패 70건이 이어졌습니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.18",
+        "srcuser": "user05",
+        "count": "70"
+      }
+    },
+    {
+      "id": "bf-09",
+      "timestamp": "2026-09-27T14:22:18+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 11,
+        "description": "서로 다른 계정 15개에 같은 비밀번호 실패가 이어졌습니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.8",
+        "srcuser": "user06",
+        "count": "15"
+      }
+    },
+    {
+      "id": "bf-10",
+      "timestamp": "2026-09-27T15:40:01+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 12,
+        "description": "로그인 실패 90건이 있고 성공은 없습니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.40",
+        "srcuser": "user06",
+        "count": "90"
+      }
+    },
+    {
+      "id": "bf-11",
+      "timestamp": "2026-09-27T09:30:12+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 6,
+        "description": "같은 계정 로그인 실패 4건 뒤에 성공했습니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.50",
+        "srcuser": "user01",
+        "count": "4"
+      }
+    },
+    {
+      "id": "bf-12",
+      "timestamp": "2026-09-27T09:41:05+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 7,
+        "description": "5분 동안 로그인 실패 6건이 있고 그 뒤 성공했습니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.50",
+        "srcuser": "user02",
+        "count": "6"
+      }
+    },
+    {
+      "id": "bf-13",
+      "timestamp": "2026-09-27T10:02:20+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 5,
+        "description": "평소와 다른 주소에서 로그인 실패가 3건입니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.50",
+        "srcuser": "user03",
+        "count": "3"
+      }
+    },
+    {
+      "id": "bf-14",
+      "timestamp": "2026-09-27T10:15:08+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 6,
+        "description": "10분 동안 한 계정의 로그인 실패가 5건입니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.51",
+        "srcuser": "user04",
+        "count": "5"
+      }
+    },
+    {
+      "id": "bf-15",
+      "timestamp": "2026-09-27T10:28:44+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 7,
+        "description": "두 계정에 실패가 2건씩 있고 주소는 같습니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.51",
+        "srcuser": "user05",
+        "count": "4"
+      }
+    },
+    {
+      "id": "bf-16",
+      "timestamp": "2026-09-27T11:18:03+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 5,
+        "description": "비밀번호 변경 화면에서 현재 비밀번호 실패가 3건입니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.51",
+        "srcuser": "user05",
+        "count": "3"
+      }
+    },
+    {
+      "id": "bf-17",
+      "timestamp": "2026-09-27T13:02:16+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 6,
+        "description": "수업 시작 무렵 로그인 실패 4건 뒤에 성공했습니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "192.0.2.52",
+        "srcuser": "user06",
+        "count": "4"
+      }
+    },
+    {
+      "id": "bf-18",
+      "timestamp": "2026-09-27T14:05:27+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 8,
+        "description": "한 주소에서 실패 8건이 있고 간격은 고르지 않습니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "198.51.100.52",
+        "srcuser": "user07",
+        "count": "8"
+      }
+    },
+    {
+      "id": "bf-19",
+      "timestamp": "2026-09-27T15:12:09+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 6,
+        "description": "잠금 뒤에 다시 넣은 실패가 3건입니다.",
+        "mitre": [
+          "T1110"
+        ]
+      },
+      "data": {
+        "srcip": "203.0.113.52",
+        "srcuser": "user08",
+        "count": "3"
+      }
+    },
+    {
+      "id": "bf-20",
+      "timestamp": "2026-09-27T09:05:02+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "로그인이 성공했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "192.0.2.60",
+        "srcuser": "user01"
+      }
+    },
+    {
+      "id": "bf-21",
+      "timestamp": "2026-09-27T09:48:11+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "로그아웃했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "192.0.2.60",
+        "srcuser": "user01"
+      }
+    },
+    {
+      "id": "bf-22",
+      "timestamp": "2026-09-27T10:06:33+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "로그인 실패 1건 뒤에 성공했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "198.51.100.60",
+        "srcuser": "user02",
+        "count": "1"
+      }
+    },
+    {
+      "id": "bf-23",
+      "timestamp": "2026-09-27T11:11:19+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "비밀번호 변경이 성공했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "203.0.113.60",
+        "srcuser": "user03"
+      }
+    },
+    {
+      "id": "bf-24",
+      "timestamp": "2026-09-27T12:01:04+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 2,
+        "description": "세션 유지를 확인했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "192.0.2.61",
+        "srcuser": "user04"
+      }
+    },
+    {
+      "id": "bf-25",
+      "timestamp": "2026-09-27T13:20:40+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "자료실 화면이 열렸습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "198.51.100.61",
+        "srcuser": "user05"
+      }
+    },
+    {
+      "id": "bf-26",
+      "timestamp": "2026-09-27T14:08:14+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "평소 주소에서 로그인이 성공했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "203.0.113.61",
+        "srcuser": "user06"
+      }
+    },
+    {
+      "id": "bf-27",
+      "timestamp": "2026-09-27T15:03:22+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 2,
+        "description": "로그인 상태가 유지되고 있습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "192.0.2.62",
+        "srcuser": "user07"
+      }
+    },
+    {
+      "id": "bf-28",
+      "timestamp": "2026-09-27T16:10:05+09:00",
+      "agent": {
+        "name": "choi-bujang-pc"
+      },
+      "rule": {
+        "level": 3,
+        "description": "로그아웃한 뒤 다시 로그인이 성공했습니다.",
+        "mitre": []
+      },
+      "data": {
+        "srcip": "198.51.100.62",
+        "srcuser": "user08"
+      }
+    }
+  ]
+}

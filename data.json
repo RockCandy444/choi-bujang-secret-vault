@@ -1,0 +1,9 @@
+{
+  "sampleMarker": "SAMPLE_NOTE_1",
+  "notes": [
+    { "title": "과제", "content": "실습용 가상 과제 기록" },
+    { "title": "포트폴리오", "content": "실습용 가상 포트폴리오 기록" },
+    { "title": "아침 리추얼", "content": "실습용 가상 리추얼 기록" },
+    { "title": "훈련 행정 자료", "content": "실습용 가상 행정 기록" }
+  ]
+}

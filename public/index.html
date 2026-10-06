@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BYTE BACK | 점령된 자료실</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; min-height: 100vh; background: #101a28; color: #ecf4ff; }
+    main { max-width: 760px; margin: 0 auto; padding: 44px 22px 64px; }
+    .eyebrow { color: #8ad8df; font-size: 14px; font-weight: 700; letter-spacing: .08em; }
+    h1 { margin: 16px 0; font-size: clamp(30px, 7vw, 48px); line-height: 1.2; }
+    p { font-size: 17px; line-height: 1.7; color: #bfd0e5; }
+    .notice { margin: 26px 0; padding: 18px; border: 1px solid #d07384; border-radius: 14px; color: #ffe3e8; background: #612a3544; }
+    ul { list-style: none; display: grid; gap: 12px; padding: 0; }
+    li { border: 1px solid #51667c; border-radius: 14px; padding: 17px 19px; background: #1a2a3d; }
+    strong { display: block; font-size: 18px; margin-bottom: 5px; }
+    li span { color: #bfd0e5; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">BYTE BACK · 1단계 피해 확인</div>
+    <h1>점령된 자료실</h1>
+    <p>지금은 보호 장치가 없는 상태입니다. 아래 기록은 모두 실습을 위해 만든 가상 자료입니다.</p>
+    <div class="notice">로그인하지 않은 방문자도 자료를 볼 수 있습니다. 공개 범위를 확인하고, 다음 제작 단계에서 접근을 차례로 막아 주세요.</div>
+    <ul id="notes" aria-live="polite"><li>가상 자료를 불러오는 중입니다.</li></ul>
+  </main>
+  <script type="module">
+    const list = document.querySelector('#notes');
+    try {
+      const response = await fetch('/data.json', { cache: 'no-store' });
+      if (!response.ok) throw new Error('공개 자료를 읽을 수 없습니다.');
+      const data = await response.json();
+      if (!Array.isArray(data.notes)) throw new Error('자료 형식이 맞지 않습니다.');
+      list.replaceChildren(...data.notes.map(note => {
+        const item = document.createElement('li');
+        const title = document.createElement('strong');
+        const content = document.createElement('span');
+        title.textContent = note.title;
+        content.textContent = note.content;
+        item.append(title, content);
+        return item;
+      }));
+    } catch (error) {
+      const item = document.createElement('li');
+      item.textContent = error.message;
+      list.replaceChildren(item);
+    }
+  </script>
+</body>
+</html>

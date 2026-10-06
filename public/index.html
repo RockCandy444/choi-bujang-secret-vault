@@ -22,24 +22,40 @@
   <main>
     <div class="eyebrow">BYTE BACK · 2단계 자료 이동</div>
     <h1>내 자료실</h1>
-    <p>공개 자료 목록에서 메모를 제거했습니다.</p>
-    <div class="notice">이 화면에서는 메모를 읽을 수 없습니다. 자료 조회 기능은 다음 제작 단계에서 연결합니다.</div>
+    <p>실습을 위해 만든 가상 자료를 조회합니다.</p>
+    <div class="notice">아직 로그인 없이 자료를 읽을 수 있습니다. 다음 단계에서 접근 보호를 추가합니다.</div>
     <ul id="notes" aria-live="polite"><li>가상 자료를 불러오는 중입니다.</li></ul>
   </main>
   <script type="module">
     const list = document.querySelector('#notes');
     try {
-      const response = await fetch('/data.json', { cache: 'no-store' });
-      if (!response.ok) throw new Error('공개 자료를 읽을 수 없습니다.');
+      const response = await fetch('/api/notes', { cache: 'no-store' });
+      if (response.status === 503) throw new Error('자료 조회 설정이 아직 준비되지 않았습니다.');
+      if (!response.ok) throw new Error('자료를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
       const data = await response.json();
-      if (!Array.isArray(data.notes)) throw new Error('자료 형식이 맞지 않습니다.');
-      if (data.notes.length !== 0) throw new Error('공개 자료 목록이 비어 있지 않습니다.');
-      const item = document.createElement('li');
-      item.textContent = '공개된 메모가 없습니다.';
-      list.replaceChildren(item);
+      if (!Array.isArray(data.notes) || data.notes.length > 4 || data.notes.some(note => !note
+          || typeof note.title !== 'string' || typeof note.content !== 'string')) {
+        throw new Error('자료 형식이 맞지 않습니다.');
+      }
+      if (data.notes.length === 0) {
+        const item = document.createElement('li');
+        item.textContent = '등록된 가상 메모가 없습니다.';
+        list.replaceChildren(item);
+      } else {
+        list.replaceChildren(...data.notes.map(note => {
+          const item = document.createElement('li');
+          const title = document.createElement('strong');
+          const content = document.createElement('span');
+          title.textContent = note.title;
+          content.textContent = note.content;
+          item.append(title, content);
+          return item;
+        }));
+      }
     } catch (error) {
       const item = document.createElement('li');
-      item.textContent = error.message;
+      item.textContent = error instanceof SyntaxError || error instanceof TypeError
+        ? '자료를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.' : error.message;
       list.replaceChildren(item);
     }
   </script>

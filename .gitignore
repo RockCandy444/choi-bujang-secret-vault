@@ -4,3 +4,4 @@ bundle-notes.json
 .env.*
 node_modules/
 public/aleph.json
+local-only/

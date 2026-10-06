@@ -17,9 +17,13 @@
 
 2026-10-06 저장점: 정적 JSON의 메모 제거, 본문을 복사하지 않는 빌드, 환경변수를 읽는 Vercel 서버 함수, 서버 API를 호출하는 화면, 최신 파일 검색 절차를 보존했습니다. `step: 2`와 Git 원격·운영 배포 주소가 일치하며 로그인 발급자는 `null`, 허용 경로는 빈 배열입니다. 2단계에는 로그인·소유자 검사를 구현하지 않았습니다. `judgeIssuer`는 원래 값을 보존했고 원본 API·복구 경로는 아직 `null`입니다. 판정기는 실제 구현된 기본 거부 규칙 `starter.deny`만 유지하며, 이 판정기가 공개 메모 API를 보호한다고 주장하지 않습니다.
 
-운영 연결 확인 당시 정적 `/data.json`은 빈 목록, 공개 `GET /api/notes`는 HTTP 200으로 가상 메모 네 건을 반환하고 화면에도 네 카드가 보였습니다. `POST /api/notes`는 405입니다. Supabase 관리자 SELECT로 네 건, `owner_id uuid`, RLS 활성화, anon·authenticated 읽기 권한 없음, service_role 읽기 허용, 외래키·정책 0개를 확인했습니다. 이후 심판에서 `S02_MARKER_IN_STATIC` 미통과 피드백을 받았습니다. 이번 수정 뒤 심판 통과는 아직 확인하지 않았으며, 공개 API의 로그인·소유자 검사와 과거 노출 해소도 완료하지 않았습니다.
+운영 연결 확인 당시 정적 `/data.json`은 빈 목록, 공개 `GET /api/notes`는 HTTP 200으로 가상 메모 네 건을 반환하고 화면에도 네 카드가 보였습니다. `POST /api/notes`는 405입니다. Supabase 관리자 SELECT로 네 건, `owner_id uuid`, RLS 활성화, anon·authenticated 읽기 권한 없음, service_role 읽기 허용, 외래키·정책 0개를 확인했습니다. 심판의 `S02_MARKER_IN_STATIC` 지적을 수정한 뒤, 사용자가 심판 통과·90점을 보고했습니다. 이번 보안 헤더 추가 뒤 점수는 재제출 결과로 확인해야 합니다. 공개 API의 로그인·소유자 검사와 과거 노출 해소는 완료하지 않았습니다.
 
 심판 지적 수정: 빈 정적 JSON과 배포 식별 JSON에 남은 1단계 확인 표시를 제거했습니다. 2단계 빌드는 이를 생성하지 않고, 로컬 빌드는 예전 배포 식별 파일을 정리합니다. 단계 설정에서도 확인 표시를 제거했습니다. 자기 점검에는 `/`, `/index.html`, `/data.json`, `/aleph.json`의 HTTP 200과 표시 부재를 실제 요청으로 확인하는 항목을 추가했습니다. 1단계 기능은 별도 검사로 보존합니다.
+
+보너스 조건 확인: `/data.json`의 HTTP 200·메모 0건과 `/aleph.json`의 HTTP 200은 운영 요청으로 확인했습니다. 첫 화면에는 보안 헤더가 없어서 `vercel.json`의 모든 경로에 `X-Content-Type-Options: nosniff`를 추가했습니다. 배포 빌드는 `/aleph.json`을 자동 생성하며, 로컬 전용 빌드에서만 예전 배포 식별 파일을 지웁니다. [Vercel의 headers 설정](https://vercel.com/docs/project-configuration/vercel-json#headers)을 따릅니다.
+
+재배포 뒤 보너스 확인 명령: `curl.exe -I https://choi-bujang-secret-vault-liard.vercel.app/`. 정상 결과는 HTTP 200과 `X-Content-Type-Options: nosniff`입니다. 브라우저 개발자 도구 **Network → 첫 화면 요청 → Headers → Response Headers**에서도 확인합니다. `/data.json`은 메모 0건, `/aleph.json`은 HTTP 200이어야 하고 POST 메모 요청은 기존대로 405로 거부돼야 합니다. 세 보너스 조건의 충족 확인과 실제 100점 판정은 구분합니다.
 
 다시 실행: `node scripts/build-public.mjs --local`로 빈 정적 파일을 만들고 `node --test test/*.test.mjs`로 로컬 검사를 실행합니다. 배포 첫 화면과 `/data.json`을 열어 비교하며, 설정 후에는 첫 화면의 네 카드가 정상 결과입니다. POST는 거부되어야 하지만 공개 GET의 성공은 아직 인증 보호를 뜻하지 않습니다.
 
@@ -37,7 +41,7 @@
 
 본문이 들어 있는 가져오기·보완 SQL과 네 건의 원본 백업(`local-only/data-before-step2.json`)은 `.gitignore`의 `local-only/`로 Git에서 제외됩니다. 이 폴더는 배포하는 `public/` 밖에 있으며 제출 묶음에도 넣지 않습니다. GitHub 체크아웃에는 가져오기 SQL이 없으므로 이 로컬 작업 폴더에서 실행하세요.
 
-새 정적 파일과 GitHub 최신 파일에는 메모 본문이 없어야 합니다. 이전 Git 커밋에는 1단계에서 공개했던 가상 자료가 남아 있습니다. 2026-10-06 원격 Supabase에서 메모 본문 없는 관리자 SELECT로 위 메타데이터를 확인했습니다. 공개 키를 사용하는 직접 조회는 미실행이며, 정적 표시 수정 후 심판 통과는 아직 확인하지 않았습니다.
+새 정적 파일과 GitHub 최신 파일에는 메모 본문이 없어야 합니다. 이전 Git 커밋에는 1단계에서 공개했던 가상 자료가 남아 있습니다. 2026-10-06 원격 Supabase에서 메모 본문 없는 관리자 SELECT로 위 메타데이터를 확인했습니다. 공개 키를 사용하는 직접 조회는 미실행입니다. 정적 표시 수정 후 통과·90점은 사용자의 보고이며, 보안 헤더 추가 뒤 점수는 아직 확인하지 않았습니다.
 
 제작 1 검증: Node 검사 12건과 임시 PostgreSQL 17의 세 건 가져오기 검사를 통과했습니다. 제작 2의 검증은 아래 절차와 테스트로 구분합니다.
 
@@ -137,7 +141,7 @@ foreach ($scanPath in @('/', '/index.html', '/data.json', '/aleph.json')) {
 
 이 결과는 **검사한 최신 정적 파일과 최신 GitHub 파일에서 원래 메모 문장이 발견되지 않았다**는 뜻입니다. Supabase 권한이나 공개 API의 접근 보호, 옛 파일의 제거, 실제 심판 판정을 증명하지 않습니다.
 
-당시 문장 검색에는 1단계 확인 표시 검사가 빠져 있었습니다. 심판의 `S02_MARKER_IN_STATIC` 지적에 따라 표시를 제거하고 위 `Stage1MarkerPresent` 검사와 제출 묶음의 정적 표시 점검을 추가했습니다. 수정 후 재제출 결과는 별도로 확인해야 합니다.
+당시 문장 검색에는 1단계 확인 표시 검사가 빠져 있었습니다. 심판의 `S02_MARKER_IN_STATIC` 지적에 따라 표시를 제거하고 위 `Stage1MarkerPresent` 검사와 제출 묶음의 정적 표시 점검을 추가했습니다. 사용자가 이 수정 후 재제출에서 통과·90점을 보고했습니다.
 
 ### 공개 API의 남은 약점과 과거 노출
 

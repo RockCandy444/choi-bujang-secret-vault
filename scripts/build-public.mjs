@@ -5,8 +5,8 @@ import { deploymentIdentity } from './deployment-identity.mjs';
 const root = resolve(import.meta.dirname, '..');
 const output = resolve(root, 'public', 'data.json');
 const config = JSON.parse(await readFile(resolve(root, 'aleph.config.json'), 'utf8'));
-if (![2, 3, 4].includes(config.step)) {
-  throw new Error('현재 빌드는 2·3·4단계의 빈 공개 자료 목록만 생성합니다.');
+if (![2, 3, 4, 5].includes(config.step)) {
+  throw new Error('현재 빌드는 2·3·4·5단계의 빈 공개 자료 목록만 생성합니다.');
 }
 await mkdir(resolve(root, 'public'), { recursive: true });
 // Never read or copy note bodies from data.json or the local import files.

@@ -1,9 +1,9 @@
 # BYTE BACK 방어전 시작 틀 R5
 
-현재 단계: **4단계 「로그인해도 내 자료만 보이게 합니다」 · 저장점** (2026-10-07).
+현재 단계: **5단계 「자료 요청을 서버 한곳으로 모읍니다」 · 저장점** (2026-10-07). 학습 DB 권한 회수 SQL은 검토·적용 대기입니다.
 Supabase Auth 로그인·로그아웃과 가상 메모 CRUD를 보존하고, 모든 메모 API에 서버가 검증한 사용자 ID와 DB의 `owner_id` 비교를 적용했습니다. 비밀번호·토큰·서버 키·실제 개인정보·메모 본문을 Git이나 제출 묶음에 넣지 않습니다.
 
-운영 주소: [내 자료실](https://choi-bujang-secret-vault-liard.vercel.app/). 2026-10-07 공개 배포 식별 조회는 3단계 커밋 `8064ff6c5f02`였습니다. 이 저장점에서는 4단계 운영 배포를 실행하지 않았습니다.
+운영 주소: [내 자료실](https://choi-bujang-secret-vault-liard.vercel.app/). 2026-10-07 이 저장점 준비 중 공개 배포 식별을 직접 조회해 4단계 커밋 `ae172a81fb26cac8ada2e2cf3cbfd582172a11ed`와 동일 저장소·심판 발급자를 확인했습니다. 이 작업에서는 5단계 운영 배포를 실행하지 않았습니다.
 
 ## 현재 기능과 실행
 
@@ -18,7 +18,23 @@ Supabase Auth 로그인·로그아웃과 가상 메모 CRUD를 보존하고, 모
 - 로컬 빌드: `node scripts/build-public.mjs --local`.
 - 로컬 검사: `node --test test/*.test.mjs`. 로컬 검사는 실제 심판 판정이 아닙니다.
 
-## 4단계 저장점과 다시 실행
+## 5단계 저장점과 다시 실행
+
+브라우저의 메모 읽기·추가·수정·삭제는 이미 `/api/notes`와 `/api/notes/:id` 서버 함수를 사용합니다. Supabase 자료 직접 호출은 없으며 Auth 호출은 보존했습니다. 서버는 로그인 검증과 `owner_id` 검사를 거쳐 서버 전용 설정으로 DB를 호출합니다. 메모 API와 인증 도우미는 이번 단계에서 변경하지 않았습니다.
+
+`aleph.config.json`의 `step: 5`, Git origin, 실제 운영 주소, Supabase 발급자 `/auth/v1`·audience `authenticated`·공개 JWKS 및 다섯 허용 경로를 구현과 대조했습니다. `originalApiUrl`은 쿼리 없는 `https://buddejtjdpwxgthvfpnu.supabase.co/rest/v1/notes`로 서버의 원본 자료 경로와 같습니다. `judgeIssuer`는 보존하며 `restoreRoute`는 `null`입니다. 빌드·배포 식별·화면 표시·자기 점검은 5단계를 지원합니다. 판정기의 실제 규칙은 `starter.deny`뿐이며 메모 API 보호는 기존 서버 로그인·소유자 검사가 담당합니다.
+
+`docs/STEP5_NOTES_DIRECT_ACCESS.sql`은 학생이 검토 후 학습 DB에서 실행할 제안입니다. `public.notes`에만 `PUBLIC`·`anon`·`authenticated` 권한 회수를 적용하고, 서버 CRUD 권한이 부족하거나 직접 접근 권한이 남으면 트랜잭션을 취소합니다. 다른 테이블·메모·소유자·Auth·RLS·정책·서버 설정은 변경하지 않습니다. **이 작업에서 SQL은 실행하지 않았고, 적용 후 권한 및 실제 A 화면 동작도 미확인입니다.**
+
+다시 실행: 기존 폴더에서 `.\local-only\start-dev.cmd`를 실행하고 `http://localhost:3000/`을 엽니다. 새 체크아웃은 의존성 설치·기존 Vercel 프로젝트 연결·Development 환경변수 등록 후 `npx vercel dev --local-config vercel.dev.json`을 사용합니다. 서버 설정 값은 공식 비밀 입력란에 직접 넣고 Git·제출 묶음에 넣지 않습니다.
+
+확인 순서: A 로그인 → 새 가상 메모 추가·조회·수정·삭제 → Supabase SQL Editor에서 SQL의 1번 권한 확인 → 검토 후 2번 트랜잭션 실행 → 1번 재확인 → A 화면 CRUD 재검사. 정상 결과는 A의 GET·PUT·DELETE 200과 POST 201, anon·authenticated 권한 false 및 service_role CRUD true입니다. 무로그인·잘못된 인증은 401, 상대 메모 접근은 404, 소유자 변경 PUT은 400이어야 합니다. 원본 자료의 anon 키 직접 요청은 심판이 확인하며 학생 자기 점검에서는 미실행으로 남깁니다.
+
+로컬 검사: `node --test test/*.test.mjs`로 38건이 통과했습니다. 기존 A CRUD·인증·소유자 검사의 모의 DB 결과는 실제 학습 DB·운영 A 요청이나 심판 판정과 구분합니다. `npm run bundle`은 커밋 후 운영 주소에 정적 파일 및 무로그인·잘못된 인증 요청을 보내 실제 응답만 기록합니다. 운영 A/B 인증 요청, DB SQL 적용과 원본 anon 키 직접 요청은 수행하지 않습니다. 운영 배포가 아직 이전 단계이면 5단계 배포 식별 미확인으로 기록합니다. `bundle-notes.json`과 `artifacts/submission.json`은 커밋하지 않습니다.
+
+아래 4·3·2·1단계 설명은 각 단계 당시의 기록입니다. 현재 기능·설정·미확인 사항은 위 5단계 설명을 따릅니다.
+
+## 4단계 저장점과 다시 실행 (당시 기록)
 
 `aleph.config.json`은 `step: 4`이며 Git origin·운영 주소·Supabase 발급자 `/auth/v1`·audience `authenticated`·공개 JWKS와 실제 다섯 경로가 구현과 일치합니다. 빌드와 배포 식별 파일도 4단계를 지원합니다. `judgeIssuer`는 보존하고, 5단계부터 사용할 원본 API·복구 경로는 아직 `null`입니다. `src/decider.mjs`에는 실제 기본 거부 규칙 `starter.deny`만 남아 있습니다. 메모 API의 보호는 기존 로그인 도우미와 API 소유자 검사가 담당합니다.
 
@@ -205,7 +221,7 @@ foreach ($scanPath in @('/', '/index.html', '/data.json', '/aleph.json')) {
 
 `vercel.json`은 정적 결과물 `public`을 배포합니다. 빌드 명령 `npm run build`는 Vercel이 제공하는 GitHub 저장소 소유자·이름, 커밋 SHA, 배포 URL을 검증하고 `public/aleph.json`을 생성합니다. 이 값이 없으면 빌드가 실패하므로, 성공한 것처럼 빈 주소를 내보내지 않습니다. `aleph.json`의 내용만으로 저장소 소유권이나 방어 성공을 인정하지 않습니다. 심판이 공개 저장소의 실제 커밋과 배포된 자료를 따로 대조해야 합니다.
 
-1단계의 `aleph.config.json`에는 주소 자리표시자가 있었습니다. 현재 설정은 실제 저장소·운영 배포 주소와 `step: 4`로 맞췄습니다. `judgeIssuer`는 시작 틀의 값을 보존했습니다. `npm run bundle`과 `bundle-notes.json`은 1단계의 세 걸음에는 포함되지 않습니다.
+1단계의 `aleph.config.json`에는 주소 자리표시자가 있었습니다. 현재 설정은 실제 저장소·운영 배포 주소와 `step: 5`로 맞췄습니다. `judgeIssuer`는 시작 틀의 값을 보존했습니다. `npm run bundle`과 `bundle-notes.json`은 1단계의 세 걸음에는 포함되지 않습니다.
 
 로컬 화면 확인에는 `node scripts/build-public.mjs --local`을 사용합니다. 로컬 실행은 Vercel 배포나 심판 접수를 증명하지 않습니다. 현재 `src/attack-check.mjs`는 배포된 `/data.json`에 비로그인 요청을 보내 목록이 비었는지 확인하며, 이 결과로 Supabase RLS가 검증됐다고 보고하지 않습니다.
 

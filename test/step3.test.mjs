@@ -26,7 +26,7 @@ test('stage 3 deployment builds empty static data and the checked Git identity',
     assert.equal(identity.step, 3);
     assert.equal(identity.commit, 'b'.repeat(40));
     assert.equal(Object.hasOwn(identity, 'sampleMarker'), false);
-    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify({ ...config, step: 5 }));
+    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify({ ...config, step: 6 }));
     assert.throws(() => execFileSync(process.execPath, ['scripts/build-public.mjs', '--local'],
       { cwd: directory, windowsHide: true, stdio: 'pipe' }));
   } finally { await rm(directory, { recursive: true, force: true }); }

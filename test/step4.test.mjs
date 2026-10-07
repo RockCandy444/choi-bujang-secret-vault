@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { runAttackChecks } from '../src/attack-check.mjs';
 
 const root = new URL('../', import.meta.url);
-const config = JSON.parse(await readFile(new URL('aleph.config.json', root), 'utf8'));
+const config = { ...JSON.parse(await readFile(new URL('aleph.config.json', root), 'utf8')), step: 4 };
 
 test('stage 4 build removes stale notes and records stage 4 deployment identity', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'aleph-step4-'));
@@ -15,6 +15,7 @@ test('stage 4 build removes stale notes and records stage 4 deployment identity'
     for (const path of ['scripts', 'aleph.config.json']) {
       await cp(new URL(path, root), join(directory, path), { recursive: true });
     }
+    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify(config));
     assert.equal(config.step, 4);
     await writeFile(join(directory, 'data.json'), 'source must never be read');
     execFileSync(process.execPath, ['scripts/build-public.mjs'], { cwd: directory,

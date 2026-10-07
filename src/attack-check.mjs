@@ -69,23 +69,32 @@ export async function runAttackChecks(config) {
         signal: AbortSignal.timeout(10000), headers: { 'Cache-Control': 'no-cache' } });
       const text = await checked.text();
       if (checked.status !== 200 || text.includes('SAMPLE_NOTE_1')) failures.push(path);
+      if (config.step === 5 && ['/', '/index.html'].includes(path)
+          && /\bsb_publishable_[A-Za-z0-9_-]+|\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/u.test(text)) {
+        failures.push(`${path}: 화면 공개 키`);
+      }
+      if (config.step === 5 && path === '/'
+          && checked.headers.get('x-content-type-options') !== 'nosniff'
+          && !checked.headers.get('content-security-policy')) failures.push('/: 보안 헤더');
       if (path === '/aleph.json') {
         let current = false;
         try {
           const identity = JSON.parse(text);
           current = identity.step === config.step && (config.step < 5
-            || identity.originalApiUrl === config.originalApiUrl);
+            || (identity.originalApiUrl === config.originalApiUrl
+              && Array.isArray(identity.allowedRoutes) && identity.allowedRoutes.length > 0
+              && JSON.stringify(identity.allowedRoutes) === JSON.stringify(config.allowedRoutes)));
         } catch { /* Missing identity fails. */ }
         results.push({ attackId: `deployment_stage${config.step}_identity`,
-          expected: `운영 배포 식별 파일에 step ${config.step} 기록${config.step >= 5 ? ' 및 원본 HTTPS 주소 일치' : ''}`,
+          expected: `운영 배포 식별 파일에 step ${config.step} 기록${config.step >= 5 ? ' 및 원본 HTTPS 주소·허용 경로 일치' : ''}`,
           observed: checked.status === 200 && current ? `HTTP 200: step ${config.step} 확인`
             : `HTTP ${checked.status}: ${config.step}단계 배포 식별 미확인` });
       }
     }
     results.push({ attackId: 'static_stage1_marker_absent',
-      expected: '정적 응답 네 경로에 1단계 확인 표시가 없음',
+      expected: `정적 응답 네 경로에 1단계 확인 표시가 없음${config.step === 5 ? '; 첫 화면 보안 헤더 및 화면 공개 키 없음' : ''}`,
       observed: failures.length ? `정적 표시 점검 실패: ${failures.join(', ')}`
-        : '정적 응답 네 경로 HTTP 200; 1단계 확인 표시 없음' });
+        : `정적 응답 네 경로 HTTP 200; 1단계 확인 표시 없음${config.step === 5 ? '; 보안 헤더 확인; 화면 공개 키 없음' : ''}` });
     results.push({ attackId: 'authenticated_a_crud',
       expected: '운영 A 로그인으로 추가·조회·수정·삭제 후 GET 404',
       observed: '미실행: 자동 점검은 로그인 비밀값을 사용하지 않음; 운영 A 화면에서 별도 확인 필요' });

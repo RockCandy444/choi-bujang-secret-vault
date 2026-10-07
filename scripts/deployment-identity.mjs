@@ -5,6 +5,11 @@ const HOST = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.vercel\.app$/iu;
 
 export function deploymentIdentity(env, config) {
   if (config?.step >= 5) {
+    if (!Array.isArray(config.allowedRoutes) || !config.allowedRoutes.length
+        || config.allowedRoutes.some(route => typeof route !== 'string'
+          || !/^(GET|POST|PUT|PATCH|DELETE) \/[A-Za-z0-9_/:.-]{1,180}$/u.test(route))) {
+      throw new Error('5단계 배포 설정에 실제 허용 경로가 필요합니다.');
+    }
     let original;
     try { original = new URL(config.originalApiUrl); } catch { /* Fail below. */ }
     if (typeof config.originalApiUrl !== 'string'
@@ -36,7 +41,8 @@ export function deploymentIdentity(env, config) {
     commit: commit.toLowerCase(),
     publicAppUrl: `https://${host.toLowerCase()}`,
     judgeIssuer: config.judgeIssuer,
-    ...(config.step >= 5 ? { originalApiUrl: config.originalApiUrl } : {}),
+    ...(config.step >= 5 ? { originalApiUrl: config.originalApiUrl,
+      allowedRoutes: [...config.allowedRoutes] } : {}),
     ...(config.step === 1 ? { sampleMarker: config.sampleMarker } : {}),
   };
 }

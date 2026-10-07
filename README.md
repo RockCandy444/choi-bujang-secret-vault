@@ -1,9 +1,9 @@
 # BYTE BACK 방어전 시작 틀 R5
 
-현재 단계: **5단계 「자료 요청을 서버 한곳으로 모읍니다」 · 저장점** (2026-10-07). 학습 DB 권한 회수 SQL은 검토·적용 대기입니다.
+현재 단계: **5단계 「자료 요청을 서버 한곳으로 모읍니다」 · 보너스 조건 보완** (2026-10-07). 학습 DB 권한 회수와 기존 A CRUD·다른 메모 보존은 사용자 실행 결과로 확인했습니다.
 Supabase Auth 로그인·로그아웃과 가상 메모 CRUD를 보존하고, 모든 메모 API에 서버가 검증한 사용자 ID와 DB의 `owner_id` 비교를 적용했습니다. 비밀번호·토큰·서버 키·실제 개인정보·메모 본문을 Git이나 제출 묶음에 넣지 않습니다.
 
-운영 주소: [내 자료실](https://choi-bujang-secret-vault-liard.vercel.app/). 2026-10-07 이 저장점 준비 중 공개 배포 식별을 직접 조회해 4단계 커밋 `ae172a81fb26cac8ada2e2cf3cbfd582172a11ed`와 동일 저장소·심판 발급자를 확인했습니다. 이 작업에서는 5단계 운영 배포를 실행하지 않았습니다.
+운영 주소: [내 자료실](https://choi-bujang-secret-vault-liard.vercel.app/). 5단계 기본 조건은 사용자 보고로 심판 통과를 확인했습니다. 보완 전 운영 커밋은 `7b0341fc6d9152c04847e03a18c140d41b755771`입니다. 보너스 보완 후 실제 100점은 재제출 판정으로 확인해야 합니다.
 
 ## 현재 기능과 실행
 
@@ -14,7 +14,7 @@ Supabase Auth 로그인·로그아웃과 가상 메모 CRUD를 보존하고, 모
 - `GET·PUT·DELETE /api/notes/:id`는 기존 행의 소유자가 본인일 때만 처리합니다. 한 건 조회·수정 응답은 `{id,title,body}`, 수정 본문은 `{title,body}`, 추가·삭제 응답은 `{id}`를 유지합니다.
 - 수정에서는 소유자로 제한한 기존 행의 제목·본문만 바꾸고 반환된 행의 소유자도 확인합니다. `owner_id`가 포함된 수정은 400 `OWNER_CHANGE_NOT_ALLOWED`, 상대·소유자 없는·존재하지 않는 메모 접근은 404 `NOTE_NOT_FOUND`입니다.
 - 기존 가상 메모와 학습 DB를 보존합니다. 소유자 없는 메모는 내 목록에 포함하지 않습니다. 정적 파일에는 가상 메모 본문도 넣지 않습니다.
-- 배포 빌드는 현재 단계와 저장소·커밋·배포 URL을 `public/aleph.json`에 기록합니다.
+- 배포 빌드는 현재 단계와 저장소·커밋·배포 URL·원본 자료 URL·다섯 허용 경로를 `public/aleph.json`에 기록합니다.
 - 로컬 빌드: `node scripts/build-public.mjs --local`.
 - 로컬 검사: `node --test test/*.test.mjs`. 로컬 검사는 실제 심판 판정이 아닙니다.
 
@@ -22,17 +22,21 @@ Supabase Auth 로그인·로그아웃과 가상 메모 CRUD를 보존하고, 모
 
 심판의 `S05_ORIGINAL_URL_MISSING` 첫 오류 수정: 설정에 있던 `originalApiUrl`이 배포용 `public/aleph.json`에서 누락되어 생성 코드에 추가했습니다. 5단계 빌드는 쿼리·인증 정보 없는 HTTPS 경로를 검증하며, 자기 점검도 배포된 원본 주소가 설정과 일치해야 배포 식별 성공으로 기록합니다. 실제 재배포와 재제출 판정은 별도로 확인합니다.
 
-브라우저의 메모 읽기·추가·수정·삭제는 이미 `/api/notes`와 `/api/notes/:id` 서버 함수를 사용합니다. Supabase 자료 직접 호출은 없으며 Auth 호출은 보존했습니다. 서버는 로그인 검증과 `owner_id` 검사를 거쳐 서버 전용 설정으로 DB를 호출합니다. 메모 API와 인증 도우미는 이번 단계에서 변경하지 않았습니다.
+브라우저의 메모 읽기·추가·수정·삭제는 `/api/notes`와 `/api/notes/:id` 서버 함수를 사용합니다. 보너스 보완에서는 로그인·세션 갱신·현재 세션 로그아웃을 `/api/auth` 서버 함수로 옮겼습니다. 브라우저의 Supabase SDK·공개 키·자료 및 Auth 직접 호출을 제거했습니다. 서버 Auth는 기존 `SUPABASE_URL`·`SUPABASE_SECRET_KEY`를 사용하며 새 키 등록은 필요하지 않습니다. 메모 API와 인증 도우미의 로그인·소유자 검사는 보존했습니다.
+
+갱신 토큰은 HttpOnly·SameSite=Strict 쿠키에 두고, 운영에서는 Secure를 적용합니다. 브라우저는 사용자 접근 토큰을 메모 API 호출용 메모리에만 보관합니다. 새로고침과 만료 전 세션 갱신을 지원하며, 로그아웃 시 자료·편집 화면을 즉시 지우고 현재 세션의 갱신 권한을 회수합니다. Auth는 같은 출처 요청만 처리하고 비밀번호·토큰·키·Supabase 오류 원문을 로그에 출력하지 않습니다. 이전 브라우저 SDK 로그인은 새 쿠키로 옮기지 않으므로 보완 뒤 처음에는 다시 로그인해야 합니다.
+
+보너스 자기 점검은 실제 운영 응답의 허용 경로·첫 화면 보안 헤더·화면 공개 키 부재를 확인합니다. `vercel.json`의 `X-Content-Type-Options: nosniff`를 유지합니다. 서버 Auth는 Supabase의 공식 [이메일 로그인](https://supabase.com/docs/reference/javascript/auth-signinwithpassword)·[세션 갱신](https://supabase.com/docs/reference/javascript/auth-refreshsession)·[로그아웃](https://supabase.com/docs/reference/javascript/auth-admin-signout) API를 사용합니다.
 
 `aleph.config.json`의 `step: 5`, Git origin, 실제 운영 주소, Supabase 발급자 `/auth/v1`·audience `authenticated`·공개 JWKS 및 다섯 허용 경로를 구현과 대조했습니다. `originalApiUrl`은 쿼리 없는 `https://buddejtjdpwxgthvfpnu.supabase.co/rest/v1/notes`로 서버의 원본 자료 경로와 같습니다. `judgeIssuer`는 보존하며 `restoreRoute`는 `null`입니다. 빌드·배포 식별·화면 표시·자기 점검은 5단계를 지원합니다. 판정기의 실제 규칙은 `starter.deny`뿐이며 메모 API 보호는 기존 서버 로그인·소유자 검사가 담당합니다.
 
-`docs/STEP5_NOTES_DIRECT_ACCESS.sql`은 학생이 검토 후 학습 DB에서 실행할 제안입니다. `public.notes`에만 `PUBLIC`·`anon`·`authenticated` 권한 회수를 적용하고, 서버 CRUD 권한이 부족하거나 직접 접근 권한이 남으면 트랜잭션을 취소합니다. 다른 테이블·메모·소유자·Auth·RLS·정책·서버 설정은 변경하지 않습니다. **이 작업에서 SQL은 실행하지 않았고, 적용 후 권한 및 실제 A 화면 동작도 미확인입니다.**
+`docs/STEP5_NOTES_DIRECT_ACCESS.sql`은 학생이 학습 DB에서 직접 실행한 권한 회수 SQL입니다. `public.notes`만 대상으로 하며 다른 테이블·메모·소유자·Auth·RLS·정책·서버 설정은 변경하지 않습니다. 사용자가 SQL 성공, 적용 후 정상 권한 변경, 기존 운영 A의 추가·조회·수정·삭제 및 다른 메모 보존을 보고했습니다. 이는 사용자 실행 결과이며 자동 점검이나 심판 판정이 아닙니다. 이번 보너스 보완에서 DB를 변경하지 않았으며, 새 서버 Auth 화면의 실제 A 동작은 재배포 후 별도 확인합니다.
 
 다시 실행: 기존 폴더에서 `.\local-only\start-dev.cmd`를 실행하고 `http://localhost:3000/`을 엽니다. 새 체크아웃은 의존성 설치·기존 Vercel 프로젝트 연결·Development 환경변수 등록 후 `npx vercel dev --local-config vercel.dev.json`을 사용합니다. 서버 설정 값은 공식 비밀 입력란에 직접 넣고 Git·제출 묶음에 넣지 않습니다.
 
 확인 순서: A 로그인 → 새 가상 메모 추가·조회·수정·삭제 → Supabase SQL Editor에서 SQL의 1번 권한 확인 → 검토 후 2번 트랜잭션 실행 → 1번 재확인 → A 화면 CRUD 재검사. 정상 결과는 A의 GET·PUT·DELETE 200과 POST 201, anon·authenticated 권한 false 및 service_role CRUD true입니다. 무로그인·잘못된 인증은 401, 상대 메모 접근은 404, 소유자 변경 PUT은 400이어야 합니다. 원본 자료의 anon 키 직접 요청은 심판이 확인하며 학생 자기 점검에서는 미실행으로 남깁니다.
 
-로컬 검사: `node --test test/*.test.mjs`로 40건이 통과했습니다. 기존 A CRUD·인증·소유자 검사의 모의 DB 결과는 실제 학습 DB·운영 A 요청이나 심판 판정과 구분합니다. `npm run bundle`은 커밋 후 운영 주소에 정적 파일 및 무로그인·잘못된 인증 요청을 보내 실제 응답만 기록합니다. 운영 A/B 인증 요청, DB SQL 적용과 원본 anon 키 직접 요청은 수행하지 않습니다. 운영 배포가 아직 이전 단계이면 5단계 배포 식별 미확인으로 기록합니다. `bundle-notes.json`과 `artifacts/submission.json`은 커밋하지 않습니다.
+로컬 검사: `node --test test/*.test.mjs`로 48건이 통과했습니다. 서버 Auth·A CRUD·인증·소유자 검사의 모의 결과는 실제 학습 DB·운영 A 요청이나 심판 판정과 구분합니다. `npm run bundle`은 커밋 후 운영 주소에 정적 파일 및 무로그인·잘못된 인증 요청을 보내 실제 응답만 기록합니다. 운영 A/B 인증 요청, DB SQL 적용과 원본 anon 키 직접 요청은 수행하지 않습니다. 운영 배포의 단계·원본 URL·허용 경로가 다르면 배포 식별 미확인으로 기록합니다. `bundle-notes.json`과 `artifacts/submission.json`은 커밋하지 않습니다.
 
 아래 4·3·2·1단계 설명은 각 단계 당시의 기록입니다. 현재 기능·설정·미확인 사항은 위 5단계 설명을 따릅니다.
 

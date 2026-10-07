@@ -67,11 +67,7 @@
     </section>
     <ul id="notes" aria-live="polite"><li>로그인 후 자료를 볼 수 있습니다.</li></ul>
   </main>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
   <script type="module">
-    // Public configuration only. Fill in the project's URL and publishable key.
-    const projectUrl = 'https://buddejtjdpwxgthvfpnu.supabase.co';
-    const publishableKey = 'sb_publishable_K2Szuey4PMAmZ-ZJ1-NiUA_ROJT-gWd';
     const form = document.querySelector('#login-form');
     const email = document.querySelector('#login-email');
     const password = document.querySelector('#login-password');
@@ -79,7 +75,8 @@
     const logoutButton = document.querySelector('#logout-button');
     const status = document.querySelector('#auth-status');
     const message = document.querySelector('#auth-message');
-    let client;
+    let refreshTimer;
+    let refreshInFlight;
     let ready = false;
     let busy = false;
     let signedIn = false;
@@ -268,7 +265,42 @@
       noteForm.setAttribute('aria-busy', String(noteBusy));
     }
 
+    async function requestAuth(method = 'GET', input, token) {
+      const headers = {};
+      if (input) headers['Content-Type'] = 'application/json';
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const response = await fetch('/api/auth', { method, headers,
+        cache: 'no-store', credentials: 'same-origin',
+        ...(input ? { body: JSON.stringify(input) } : {}) });
+      const data = await response.json();
+      if (!response.ok) throw Object.assign(new Error('AUTH_ERROR'), { code: data.code ?? data.error });
+      if (data.session && (!data.session.user || typeof data.session.user.id !== 'string'
+          || typeof data.session.access_token !== 'string'
+          || !Number.isSafeInteger(data.session.expires_at))) throw new TypeError('Invalid session');
+      return data.session;
+    }
+
+    async function refreshSession() {
+      if (refreshInFlight || busy) return refreshInFlight;
+      const epoch = userEpoch;
+      refreshInFlight = (async () => {
+        try {
+          const session = await requestAuth();
+          if (epoch === userEpoch) renderSession(session);
+        } catch (error) {
+          if (epoch === userEpoch) {
+            renderSession(null);
+            showMessage(`로그인 확인 실패: ${errorReason(error)}`);
+          }
+        } finally { refreshInFlight = null; }
+      })();
+      return refreshInFlight;
+    }
+
     function renderSession(session) {
+      globalThis.clearTimeout(refreshTimer);
+      if (session?.expires_at) refreshTimer = globalThis.setTimeout(() => void refreshSession(),
+        Math.max(1000, session.expires_at * 1000 - Date.now() - 60000));
       const wasSignedIn = signedIn;
       signedIn = Boolean(session?.user);
       // Used only to clear browser UI between sessions, never sent as authority.
@@ -314,6 +346,10 @@
 
     function errorReason(error) {
       const reasons = {
+        AUTH_NOT_CONFIGURED: '로그인 서버 설정이 아직 준비되지 않았습니다.',
+        AUTH_UNAVAILABLE: '로그인 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+        AUTH_ORIGIN_DENIED: '현재 자료실 화면에서 다시 로그인해 주세요.',
+        INVALID_LOGIN_INPUT: '이메일과 비밀번호 입력 형식을 확인해 주세요.',
         invalid_credentials: '이메일 또는 비밀번호가 올바르지 않습니다.',
         email_not_confirmed: '이메일 인증을 완료한 뒤 다시 로그인해 주세요.',
         email_provider_disabled: '이 프로젝트에서 이메일 로그인이 꺼져 있습니다.',
@@ -334,16 +370,9 @@
       showMessage();
       updateControls();
       try {
-        const { data, error } = await client.auth.signInWithPassword({
-          email: email.value.trim(), password: password.value,
-        });
-        if (error) {
-          showMessage(`로그인 실패: ${errorReason(error)}`);
-        } else if (data.session?.user) {
-          renderSession(data.session);
-        } else {
-          showMessage('로그인 실패: 로그인 세션을 받지 못했습니다. 다시 시도해 주세요.');
-        }
+        const session = await requestAuth('POST', { email: email.value.trim(), password: password.value });
+        if (session?.user) renderSession(session);
+        else showMessage('로그인 실패: 로그인 세션을 받지 못했습니다. 다시 시도해 주세요.');
       } catch (error) {
         showMessage(`로그인 실패: ${errorReason(error)}`);
       } finally {
@@ -360,12 +389,9 @@
       showMessage();
       updateControls();
       try {
-        const { error } = await client.auth.signOut({ scope: 'local' });
-        if (error) {
-          showMessage(`로그아웃 실패: ${errorReason(error)}`);
-        } else {
-          renderSession(null);
-        }
+        const token = currentToken;
+        renderSession(null);
+        await requestAuth('DELETE', undefined, token);
       } catch (error) {
         showMessage(`로그아웃 실패: ${errorReason(error)}`);
       } finally {
@@ -375,24 +401,11 @@
       }
     });
 
+    globalThis.addEventListener('focus', () => { if (ready) void refreshSession(); });
     try {
-      if (!projectUrl || !publishableKey.startsWith('sb_publishable_')) {
-        status.textContent = '로그인 설정이 필요합니다.';
-        showMessage('공개 Project URL과 publishable key가 아직 설정되지 않았습니다.');
-      } else if (!globalThis.supabase?.createClient) {
-        status.textContent = '로그인을 준비하지 못했습니다.';
-        showMessage('로그인 SDK를 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해 주세요.');
-      } else {
-        client = globalThis.supabase.createClient(projectUrl, publishableKey);
-        client.auth.onAuthStateChange((_event, session) => {
-          renderSession(session);
-          showMessage();
-        });
-        const { data, error } = await client.auth.getSession();
-        if (error) throw error;
-        ready = true;
-        renderSession(data.session);
-      }
+      const session = await requestAuth();
+      ready = true;
+      renderSession(session);
     } catch (error) {
       ready = false;
       status.textContent = '로그인을 준비하지 못했습니다.';

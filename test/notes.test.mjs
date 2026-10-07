@@ -188,17 +188,28 @@ async function mountPage(browserFetch, initialSession = null) {
     if (!elements.has(id)) elements.set(id, element('test'));
     return elements.get(id);
   } };
-  let changeSession;
-  const browserGlobal = { supabase: { createClient() { return { auth: {
-    onAuthStateChange(callback) { changeSession = callback; },
-    async getSession() { return { data: { session: initialSession }, error: null }; },
-  } }; } } };
+  let authSession = initialSession;
+  const events = {};
+  const browserGlobal = { setTimeout() { return 0; }, clearTimeout() {},
+    addEventListener(event, callback) { events[event] = callback; } };
+  const authFetch = async (path, options) => {
+    if (path !== '/api/auth') return browserFetch(path, options);
+    if (options.method === 'DELETE') authSession = null;
+    return new Response(JSON.stringify({ session: authSession ? { ...authSession,
+      expires_at: Math.floor(Date.now() / 1000) + 3600 } : null }));
+  };
   const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-  await new AsyncFunction('document', 'fetch', 'globalThis', script)(document, browserFetch, browserGlobal);
+  await new AsyncFunction('document', 'fetch', 'globalThis', script)(document, authFetch, browserGlobal);
+  const changeSession = (event, session) => {
+    authSession = session;
+    if (event === 'SIGNED_OUT') return elements.get('#logout-button').listeners.click();
+    if (event === 'TOKEN_REFRESHED') return events.focus();
+    return elements.get('#login-form').listeners.submit({ preventDefault() {} });
+  };
   return { elements, changeSession };
 }
 
-test('page makes no anonymous read, sends only the SDK token, renders text, and clears notes on logout', async () => {
+test('page makes no anonymous read, sends only the server-issued token, renders text, and clears notes on logout', async () => {
   let requests = 0;
   const token = (await authorization()).slice('Bearer '.length);
   const suppliedRows = rows.map(row => ({ ...row, title: `<img onerror=alert(1)>${row.title}` }));
@@ -214,12 +225,12 @@ test('page makes no anonymous read, sends only the SDK token, renders text, and 
   assert.equal(requests, 0);
   assert.match(list.children[0].textContent, /로그인 후/u);
   const session = { user: { id: subject }, access_token: token };
-  page.changeSession('SIGNED_IN', session);
+  await page.changeSession('SIGNED_IN', session);
   await new Promise(setImmediate);
   assert.equal(list.children.length, 4);
   assert.deepEqual(list.children.map(card => card.children.slice(0, 2).map(child => child.textContent)),
     suppliedRows.map(row => [row.title, row.content]));
-  page.changeSession('TOKEN_REFRESHED', session);
+  await page.changeSession('TOKEN_REFRESHED', session);
   assert.equal(requests, 1);
   page.changeSession('SIGNED_OUT', null);
   assert.equal(list.children.length, 1);

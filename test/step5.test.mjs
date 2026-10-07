@@ -26,6 +26,7 @@ test('stage 5 build keeps restored note bodies private and emits the current sta
     const identity = JSON.parse(await readFile(join(directory, 'public/aleph.json'), 'utf8'));
     assert.equal(identity.step, 5);
     assert.equal(identity.originalApiUrl, config.originalApiUrl);
+    assert.deepEqual(identity.allowedRoutes, config.allowedRoutes);
     assert.equal(identity.commit, 'd'.repeat(40));
     assert.equal(Object.hasOwn(identity, 'sampleMarker'), false);
     execFileSync(process.execPath, ['scripts/build-public.mjs', '--local'],
@@ -53,7 +54,9 @@ for (const [deployedStep, originalPresent] of [[4, false], [5, false], [5, true]
         }
         return new Response(JSON.stringify(url.pathname === '/data.json' ? { notes: [] }
           : url.pathname === '/aleph.json' ? { step: deployedStep,
-            ...(originalPresent ? { originalApiUrl: config.originalApiUrl } : {}) } : {}));
+            ...(originalPresent ? { originalApiUrl: config.originalApiUrl,
+              allowedRoutes: config.allowedRoutes } : {}) } : {}),
+          { headers: { 'X-Content-Type-Options': 'nosniff' } });
       };
       const results = await runAttackChecks(config);
       assert.equal(requests.length, 14);
@@ -83,4 +86,35 @@ test('stage 5 deployment refuses missing, credential-bearing or queried original
     credentialUrl.href, 'https://source.test/']) {
     assert.throws(() => deploymentIdentity(env, { ...config, originalApiUrl }));
   }
+});
+
+test('stage 5 deployment refuses absent or malformed allowed routes', () => {
+  const env = { VERCEL_GIT_PROVIDER: 'github', VERCEL_GIT_REPO_OWNER: 'Student-A',
+    VERCEL_GIT_REPO_SLUG: 'aleph-defense', VERCEL_GIT_COMMIT_SHA: 'a'.repeat(40),
+    VERCEL_URL: 'stage5-test.vercel.app' };
+  for (const allowedRoutes of [undefined, [], ['GET /api/notes?key=fixture'], ['invalid']]) {
+    assert.throws(() => deploymentIdentity(env, { ...config, allowedRoutes }));
+  }
+});
+
+test('stage 5 self-check catches each missing bonus without printing keys', async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    for (const missing of ['routes', 'header', 'key']) {
+      globalThis.fetch = async input => {
+        const path = new URL(input).pathname;
+        if (path.startsWith('/api/notes')) return new Response(JSON.stringify({ error: 'LOGIN_REQUIRED' }), { status: 401 });
+        const body = path === '/data.json' ? JSON.stringify({ notes: [] })
+          : path === '/aleph.json' ? JSON.stringify({ step: 5, originalApiUrl: config.originalApiUrl,
+            ...(missing === 'routes' ? {} : { allowedRoutes: config.allowedRoutes }) })
+          : missing === 'key' ? ['sb', 'publishable', 'synthetic_fixture'].join('_') : '{}';
+        return new Response(body, { headers: missing === 'header' ? {} : { 'X-Content-Type-Options': 'nosniff' } });
+      };
+      const results = await runAttackChecks(config);
+      const result = results.find(r => r.attackId === (missing === 'routes'
+        ? 'deployment_stage5_identity' : 'static_stage1_marker_absent'));
+      assert.match(result.observed, /미확인|점검 실패/u);
+      assert.ok(!JSON.stringify(results).includes('synthetic_fixture'));
+    }
+  } finally { globalThis.fetch = originalFetch; }
 });

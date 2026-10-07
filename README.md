@@ -1,17 +1,37 @@
 # BYTE BACK 방어전 시작 틀 R5
 
-현재 단계: **2단계 「자료를 코드 밖으로 옮깁니다」 · 제작 2** (2026-10-06).
-이 저장소는 1단계 R5 시작 틀에서 이어졌습니다. 정적 파일의 메모 본문을 제거하고 Supabase와 서버 조회 함수를 연결했습니다. 운영 화면의 네 카드 표시까지 확인했습니다. 실제 학생 자료, 토큰, 비밀키를 넣지 마세요.
+현재 단계: **3단계 「진짜 로그인을 붙입니다」 · 저장점** (2026-10-07).
+Supabase Auth 공식 SDK의 이메일·비밀번호 로그인과 로그아웃, 기존 `src/verify-login.mjs`를 사용하는 서버 인증, 로그인한 사용자의 가상 메모 CRUD를 구현했습니다. 비밀번호·토큰·서버 키·실제 개인정보·메모 본문을 Git이나 제출 묶음에 넣지 않습니다.
 
 운영 배포: [내 자료실](https://choi-bujang-secret-vault-liard.vercel.app/).
 
 ## 현재 기능과 실행
 
 - `data.json`과 `public/data.json`은 확인 표시 없는 `{ "notes": [] }`입니다. 빌드는 메모 원본을 읽거나 복사하지 않습니다.
-- 자료실 화면은 `/api/notes`를 통해 Supabase `public.notes`에서 가상 메모 네 건을 읽어 카드로 표시합니다. 정적 JSON은 읽지 않습니다.
+- 로그인 실패 이유를 화면에 표시하며, 로그아웃하면 자료와 편집 화면을 지웁니다. 가입 화면은 없으며 실습 계정은 Supabase Authentication → Users에서 직접 만듭니다.
+- API는 기존 인증 도우미가 확인한 사용자 ID만 사용합니다. 무로그인·잘못된 인증은 자료 없이 401로 거부합니다.
+- `GET /api/notes`는 로그인 사용자의 메모 배열을 반환합니다. `POST /api/notes`는 `{id?,title,body}`를 받아 서버가 확인한 ID를 `owner_id`로 저장하고 `{id}`를 반환합니다. UUID가 없으면 서버가 생성합니다.
+- `GET·PUT·DELETE /api/notes/:id`가 한 건 조회·수정·삭제를 처리합니다. 한 건 응답은 `{id,title,body}`이며 삭제 후 GET은 404입니다.
+- 한 건 GET·PUT·DELETE에는 아직 소유자 검사가 없습니다. B의 타인 메모 접근과 차단은 4단계에서 다룹니다. 기존 `owner_id = NULL` 가상 메모 네 건은 보존하며 내 목록에 포함하지 않습니다.
 - 배포 빌드는 현재 단계와 저장소·커밋·배포 URL을 `public/aleph.json`에 기록합니다.
 - 로컬 빌드: `node scripts/build-public.mjs --local`.
 - 로컬 검사: `node --test test/*.test.mjs`. 로컬 검사는 실제 심판 판정이 아닙니다.
+
+## 3단계 저장점과 다시 실행
+
+`aleph.config.json`의 `step: 3`, 실제 운영 주소, Supabase 발급자 `/auth/v1`, audience `authenticated`, 공개 JWKS 주소와 실제 다섯 API 경로를 구현에 맞췄습니다. `judgeIssuer`는 변경하지 않았고 원본 API와 복구 경로는 아직 `null`입니다. `src/decider.mjs`의 실제 기본 거부 규칙 `starter.deny`를 보존하며, 자료 API 보호는 기존 로그인 검사 도우미가 담당합니다.
+
+서버 설정은 Vercel → Settings → Environment Variables의 `SUPABASE_URL`과 `SUPABASE_SECRET_KEY`입니다. 운영에는 Production, 로컬에는 Development 환경이 필요합니다. 값은 공식 입력란에 직접 넣습니다. 기존 학습 DB가 읽기 권한만 가진 경우 `docs/STEP3_NOTES_CRUD.sql`을 Supabase SQL Editor에서 실행합니다. 이 SQL은 service_role의 CRUD 권한만 보완하고 기존 메모·소유자·RLS·브라우저 권한을 보존합니다.
+
+다시 실행: 기존 로컬 작업 폴더에서는 `.\local-only\start-dev.cmd`로 Vercel 개발 서버를 시작하고 `http://localhost:3000`을 엽니다. 새 체크아웃은 의존성을 설치하고 기존 Vercel 프로젝트를 연결한 뒤 `npx vercel dev --local-config vercel.dev.json`을 사용합니다. 로컬 빌드는 `node scripts/build-public.mjs --local`로 수행합니다. `file://`로 HTML을 열면 서버 API가 실행되지 않습니다. 로컬 도구·`.vercel/`·`.env*`는 Git과 제출 묶음에서 제외합니다.
+
+사용자가 로컬 A 로그인, 메모 추가·수정·삭제, 로그아웃 후 자료 숨김을 정상으로 보고했습니다. 실제 로컬 무로그인·잘못된 인증 요청의 401을 확인했습니다. 자동 검사 29건이 통과했으며, 모의 DB와 메모리 내 가상 서명으로 인증·CRUD 계약을 검사한 결과는 실제 A 계정 시험이나 심판 판정이 아닙니다. 운영 A 계정의 CRUD 확인은 배포 뒤 별도로 진행합니다.
+
+화면 확인: 운영 주소 → 로그인 → 가상 메모 추가 → 수정 → 삭제 → 로그아웃 순서로 누릅니다. 정상 A는 저장·수정·삭제할 수 있어야 하고, 로그아웃 및 시크릿 창의 무로그인 요청에서는 자료가 보이지 않아야 합니다. 계정 비밀번호·토큰은 채팅이나 파일로 전달하지 않습니다.
+
+제출 묶음은 저장점 커밋과 운영 배포 뒤 `npm run bundle`로 생성합니다. `src/attack-check.mjs`는 정적 메모 0건, 실제로 보낸 다섯 경로의 무로그인·잘못된 인증 거부, 3단계 배포 식별, 정적 확인 표시 부재를 기록합니다. 운영 A의 정상 CRUD는 자동 점검에서 미실행으로 남깁니다. B의 타인 메모 접근도 아직 시험하지 않았습니다. `bundle-notes.json`과 `artifacts/submission.json`은 커밋하지 않습니다.
+
+아래 내용은 **2단계 당시의 기록**입니다. 당시 공개 GET·POST 405·로그인 발급자 null·허용 경로 없음은 과거 상태이며, 현재 3단계 동작은 위 설명을 따릅니다. 과거 Git 커밋과 배포의 노출 해소는 여전히 확인하지 않았습니다.
 
 ## 2단계 저장점
 

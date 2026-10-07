@@ -8,7 +8,8 @@ import { deploymentIdentity } from '../scripts/deployment-identity.mjs';
 import { runAttackChecks } from '../src/attack-check.mjs';
 
 const root = new URL('../', import.meta.url);
-const config = JSON.parse(await readFile(new URL('aleph.config.json', root), 'utf8'));
+// Keep the previous stage's regression checks independent of the current stage.
+const config = { ...JSON.parse(await readFile(new URL('aleph.config.json', root), 'utf8')), step: 2 };
 
 test('stage 2 build never republishes restored source or stale public notes', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'aleph-step2-'));
@@ -16,6 +17,7 @@ test('stage 2 build never republishes restored source or stale public notes', as
     for (const path of ['scripts', 'public', 'aleph.config.json']) {
       await cp(new URL(path, root), join(directory, path), { recursive: true });
     }
+    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify(config));
     const marker = 'restored-private-note-for-build-test';
     const contaminated = JSON.stringify({ sampleMarker: 'SAMPLE_NOTE_1',
       notes: [{ title: 'test', content: marker }] });

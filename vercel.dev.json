@@ -1,0 +1,6 @@
+{
+  "framework": null,
+  "buildCommand": "node scripts/build-public.mjs --local",
+  "outputDirectory": "public",
+  "headers": [{ "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }] }]
+}

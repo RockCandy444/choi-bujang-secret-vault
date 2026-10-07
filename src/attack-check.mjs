@@ -1,7 +1,9 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
+import { randomUUID } from 'node:crypto';
+
 export async function runAttackChecks(config) {
-  if (![1, 2].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -32,6 +34,58 @@ export async function runAttackChecks(config) {
     } catch {
       // A non-JSON response is a failed check, not a successful deployment.
     }
+  }
+  if (config.step === 3) {
+    const results = [{ attackId: 'anonymous_static_note_read',
+      expected: '정적 JSON은 HTTP 200의 빈 메모 목록',
+      observed: response.status === 200 && empty ? 'HTTP 200: 정적 메모 0건'
+        : `정적 목록 점검 실패 (HTTP ${response.status})` }];
+    // No credentials or note payloads. A random missing ID avoids touching saved notes.
+    const id = randomUUID();
+    const routes = [['GET', '/api/notes', 'list'], ['POST', '/api/notes', 'create'],
+      ['GET', `/api/notes/${id}`, 'item'], ['PUT', `/api/notes/${id}`, 'update'],
+      ['DELETE', `/api/notes/${id}`, 'delete']];
+    for (const invalid of [false, true]) {
+      for (const [method, path, name] of routes) {
+        const checked = await fetch(new URL(path, app), { method, redirect: 'error',
+          signal: AbortSignal.timeout(10000), cache: 'no-store',
+          ...(invalid ? { headers: { Authorization: 'Bearer invalid' } } : {}) });
+        let denied = false;
+        try {
+          const data = await checked.json();
+          denied = checked.status === 401 && data?.error === 'LOGIN_REQUIRED'
+            && Object.keys(data).join(',') === 'error';
+        } catch { /* Never include raw response data. */ }
+        results.push({ attackId: `${invalid ? 'invalid_login' : 'anonymous'}_${name}_denied`,
+          expected: `${invalid ? '잘못된 인증' : '무로그인'} ${method} 요청은 자료 없이 HTTP 401 거부`,
+          observed: denied ? 'HTTP 401: LOGIN_REQUIRED만 반환, 자료 없음'
+            : `HTTP ${checked.status}: 인증 거부 점검 실패` });
+      }
+    }
+    const failures = [];
+    if (response.status !== 200 || staticText.includes('SAMPLE_NOTE_1')) failures.push('/data.json');
+    for (const path of ['/', '/index.html', '/aleph.json']) {
+      const checked = await fetch(new URL(path, app), { redirect: 'error',
+        signal: AbortSignal.timeout(10000), headers: { 'Cache-Control': 'no-cache' } });
+      const text = await checked.text();
+      if (checked.status !== 200 || text.includes('SAMPLE_NOTE_1')) failures.push(path);
+      if (path === '/aleph.json') {
+        let current = false;
+        try { current = JSON.parse(text).step === 3; } catch { /* Missing identity fails. */ }
+        results.push({ attackId: 'deployment_stage3_identity',
+          expected: '운영 배포 식별 파일에 step 3 기록',
+          observed: checked.status === 200 && current ? 'HTTP 200: step 3 확인'
+            : `HTTP ${checked.status}: 3단계 배포 식별 미확인` });
+      }
+    }
+    results.push({ attackId: 'static_stage1_marker_absent',
+      expected: '정적 응답 네 경로에 1단계 확인 표시가 없음',
+      observed: failures.length ? `정적 표시 점검 실패: ${failures.join(', ')}`
+        : '정적 응답 네 경로 HTTP 200; 1단계 확인 표시 없음' });
+    results.push({ attackId: 'authenticated_a_crud',
+      expected: '운영 A 로그인으로 추가·조회·수정·삭제 후 GET 404',
+      observed: '미실행: 자동 점검은 로그인 비밀값을 사용하지 않음; 운영 A 화면에서 별도 확인 필요' });
+    return results;
   }
   if (config.step === 2) {
     const results = [{ attackId: 'anonymous_static_note_read', expected: '비로그인 공개 JSON에 메모 본문이 없음',

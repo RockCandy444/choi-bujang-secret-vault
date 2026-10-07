@@ -4,6 +4,17 @@ const SHA = /^[a-f0-9]{40}$/iu;
 const HOST = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.vercel\.app$/iu;
 
 export function deploymentIdentity(env, config) {
+  if (config?.step >= 5) {
+    let original;
+    try { original = new URL(config.originalApiUrl); } catch { /* Fail below. */ }
+    if (typeof config.originalApiUrl !== 'string'
+        || config.originalApiUrl !== config.originalApiUrl.trim()
+        || !original || original.protocol !== 'https:' || original.username
+        || original.password || config.originalApiUrl.includes('?')
+        || config.originalApiUrl.includes('#') || original.pathname === '/') {
+      throw new Error('5단계 원본 자료 주소는 비밀값·쿼리 없는 HTTPS 경로여야 합니다.');
+    }
+  }
   const owner = env.VERCEL_GIT_REPO_OWNER;
   const repo = env.VERCEL_GIT_REPO_SLUG;
   const commit = env.VERCEL_GIT_COMMIT_SHA;
@@ -25,6 +36,7 @@ export function deploymentIdentity(env, config) {
     commit: commit.toLowerCase(),
     publicAppUrl: `https://${host.toLowerCase()}`,
     judgeIssuer: config.judgeIssuer,
+    ...(config.step >= 5 ? { originalApiUrl: config.originalApiUrl } : {}),
     ...(config.step === 1 ? { sampleMarker: config.sampleMarker } : {}),
   };
 }

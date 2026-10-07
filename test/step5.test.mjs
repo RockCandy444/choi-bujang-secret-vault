@@ -5,6 +5,7 @@ import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
 import { runAttackChecks } from '../src/attack-check.mjs';
+import { deploymentIdentity } from '../scripts/deployment-identity.mjs';
 
 const root = new URL('../', import.meta.url);
 const config = { ...JSON.parse(await readFile(new URL('aleph.config.json', root), 'utf8')), step: 5 };
@@ -24,6 +25,7 @@ test('stage 5 build keeps restored note bodies private and emits the current sta
     assert.deepEqual(JSON.parse(await readFile(join(directory, 'public/data.json'), 'utf8')), { notes: [] });
     const identity = JSON.parse(await readFile(join(directory, 'public/aleph.json'), 'utf8'));
     assert.equal(identity.step, 5);
+    assert.equal(identity.originalApiUrl, config.originalApiUrl);
     assert.equal(identity.commit, 'd'.repeat(40));
     assert.equal(Object.hasOwn(identity, 'sampleMarker'), false);
     execFileSync(process.execPath, ['scripts/build-public.mjs', '--local'],
@@ -35,8 +37,8 @@ test('stage 5 build keeps restored note bodies private and emits the current sta
   }
 });
 
-for (const deployedStep of [4, 5]) {
-  test(`stage 5 self-check records deployed step ${deployedStep} without inventing DB or authenticated results`, async () => {
+for (const [deployedStep, originalPresent] of [[4, false], [5, false], [5, true]]) {
+  test(`stage 5 self-check records deployed step ${deployedStep}, original URL present=${originalPresent}, without inventing results`, async () => {
     const originalFetch = globalThis.fetch;
     const requests = [];
     try {
@@ -50,13 +52,14 @@ for (const deployedStep of [4, 5]) {
           return new Response(JSON.stringify({ error: 'LOGIN_REQUIRED' }), { status: 401 });
         }
         return new Response(JSON.stringify(url.pathname === '/data.json' ? { notes: [] }
-          : url.pathname === '/aleph.json' ? { step: deployedStep } : {}));
+          : url.pathname === '/aleph.json' ? { step: deployedStep,
+            ...(originalPresent ? { originalApiUrl: config.originalApiUrl } : {}) } : {}));
       };
       const results = await runAttackChecks(config);
       assert.equal(requests.length, 14);
       assert.equal(results.length, 20);
       const identity = results.find(item => item.attackId === 'deployment_stage5_identity');
-      assert.equal(identity.observed.includes('step 5 확인'), deployedStep === 5);
+      assert.equal(identity.observed.includes('step 5 확인'), deployedStep === 5 && originalPresent);
       for (const id of ['authenticated_a_crud', 'authenticated_b_crud',
         'foreign_note_access_denied', 'owner_change_denied', 'owner_notes_preserved',
         'original_api_anon_denied', 'notes_direct_privileges_revoked']) {
@@ -66,3 +69,18 @@ for (const deployedStep of [4, 5]) {
     } finally { globalThis.fetch = originalFetch; }
   });
 }
+
+test('stage 5 deployment refuses missing, credential-bearing or queried original URLs', () => {
+  const env = { VERCEL_GIT_PROVIDER: 'github', VERCEL_GIT_REPO_OWNER: 'Student-A',
+    VERCEL_GIT_REPO_SLUG: 'aleph-defense', VERCEL_GIT_COMMIT_SHA: 'a'.repeat(40),
+    VERCEL_URL: 'stage5-test.vercel.app' };
+  const credentialUrl = new URL('https://source.test/notes');
+  credentialUrl.username = 'synthetic';
+  credentialUrl.password = 'fixture';
+  for (const originalApiUrl of [null, '', 'http://source.test/notes',
+    'https://source.test/notes?select=id', 'https://source.test/notes#fragment',
+    'https://source.test/notes?', 'https://source.test/notes#',
+    credentialUrl.href, 'https://source.test/']) {
+    assert.throws(() => deploymentIdentity(env, { ...config, originalApiUrl }));
+  }
+});

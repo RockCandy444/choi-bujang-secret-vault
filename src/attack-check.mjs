@@ -71,9 +71,13 @@ export async function runAttackChecks(config) {
       if (checked.status !== 200 || text.includes('SAMPLE_NOTE_1')) failures.push(path);
       if (path === '/aleph.json') {
         let current = false;
-        try { current = JSON.parse(text).step === config.step; } catch { /* Missing identity fails. */ }
+        try {
+          const identity = JSON.parse(text);
+          current = identity.step === config.step && (config.step < 5
+            || identity.originalApiUrl === config.originalApiUrl);
+        } catch { /* Missing identity fails. */ }
         results.push({ attackId: `deployment_stage${config.step}_identity`,
-          expected: `운영 배포 식별 파일에 step ${config.step} 기록`,
+          expected: `운영 배포 식별 파일에 step ${config.step} 기록${config.step >= 5 ? ' 및 원본 HTTPS 주소 일치' : ''}`,
           observed: checked.status === 200 && current ? `HTTP 200: step ${config.step} 확인`
             : `HTTP ${checked.status}: ${config.step}단계 배포 식별 미확인` });
       }

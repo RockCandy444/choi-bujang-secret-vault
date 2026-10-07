@@ -20,6 +20,8 @@ Supabase Auth 로그인·로그아웃과 가상 메모 CRUD를 보존하고, 모
 
 ## 5단계 저장점과 다시 실행
 
+심판의 `S05_ORIGINAL_URL_MISSING` 첫 오류 수정: 설정에 있던 `originalApiUrl`이 배포용 `public/aleph.json`에서 누락되어 생성 코드에 추가했습니다. 5단계 빌드는 쿼리·인증 정보 없는 HTTPS 경로를 검증하며, 자기 점검도 배포된 원본 주소가 설정과 일치해야 배포 식별 성공으로 기록합니다. 실제 재배포와 재제출 판정은 별도로 확인합니다.
+
 브라우저의 메모 읽기·추가·수정·삭제는 이미 `/api/notes`와 `/api/notes/:id` 서버 함수를 사용합니다. Supabase 자료 직접 호출은 없으며 Auth 호출은 보존했습니다. 서버는 로그인 검증과 `owner_id` 검사를 거쳐 서버 전용 설정으로 DB를 호출합니다. 메모 API와 인증 도우미는 이번 단계에서 변경하지 않았습니다.
 
 `aleph.config.json`의 `step: 5`, Git origin, 실제 운영 주소, Supabase 발급자 `/auth/v1`·audience `authenticated`·공개 JWKS 및 다섯 허용 경로를 구현과 대조했습니다. `originalApiUrl`은 쿼리 없는 `https://buddejtjdpwxgthvfpnu.supabase.co/rest/v1/notes`로 서버의 원본 자료 경로와 같습니다. `judgeIssuer`는 보존하며 `restoreRoute`는 `null`입니다. 빌드·배포 식별·화면 표시·자기 점검은 5단계를 지원합니다. 판정기의 실제 규칙은 `starter.deny`뿐이며 메모 API 보호는 기존 서버 로그인·소유자 검사가 담당합니다.
@@ -30,7 +32,7 @@ Supabase Auth 로그인·로그아웃과 가상 메모 CRUD를 보존하고, 모
 
 확인 순서: A 로그인 → 새 가상 메모 추가·조회·수정·삭제 → Supabase SQL Editor에서 SQL의 1번 권한 확인 → 검토 후 2번 트랜잭션 실행 → 1번 재확인 → A 화면 CRUD 재검사. 정상 결과는 A의 GET·PUT·DELETE 200과 POST 201, anon·authenticated 권한 false 및 service_role CRUD true입니다. 무로그인·잘못된 인증은 401, 상대 메모 접근은 404, 소유자 변경 PUT은 400이어야 합니다. 원본 자료의 anon 키 직접 요청은 심판이 확인하며 학생 자기 점검에서는 미실행으로 남깁니다.
 
-로컬 검사: `node --test test/*.test.mjs`로 38건이 통과했습니다. 기존 A CRUD·인증·소유자 검사의 모의 DB 결과는 실제 학습 DB·운영 A 요청이나 심판 판정과 구분합니다. `npm run bundle`은 커밋 후 운영 주소에 정적 파일 및 무로그인·잘못된 인증 요청을 보내 실제 응답만 기록합니다. 운영 A/B 인증 요청, DB SQL 적용과 원본 anon 키 직접 요청은 수행하지 않습니다. 운영 배포가 아직 이전 단계이면 5단계 배포 식별 미확인으로 기록합니다. `bundle-notes.json`과 `artifacts/submission.json`은 커밋하지 않습니다.
+로컬 검사: `node --test test/*.test.mjs`로 40건이 통과했습니다. 기존 A CRUD·인증·소유자 검사의 모의 DB 결과는 실제 학습 DB·운영 A 요청이나 심판 판정과 구분합니다. `npm run bundle`은 커밋 후 운영 주소에 정적 파일 및 무로그인·잘못된 인증 요청을 보내 실제 응답만 기록합니다. 운영 A/B 인증 요청, DB SQL 적용과 원본 anon 키 직접 요청은 수행하지 않습니다. 운영 배포가 아직 이전 단계이면 5단계 배포 식별 미확인으로 기록합니다. `bundle-notes.json`과 `artifacts/submission.json`은 커밋하지 않습니다.
 
 아래 4·3·2·1단계 설명은 각 단계 당시의 기록입니다. 현재 기능·설정·미확인 사항은 위 5단계 설명을 따릅니다.
 

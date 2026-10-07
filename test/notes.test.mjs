@@ -69,14 +69,14 @@ test('verified A GET reads four DB notes with a server-only apikey and strips ex
     mockUpstream(async (url, options) => {
       assert.equal(url.origin, process.env.SUPABASE_URL);
       assert.equal(url.pathname, '/rest/v1/notes');
-      assert.equal(url.searchParams.get('select'), 'id,title,content');
+      assert.equal(url.searchParams.get('select'), 'id,title,content,owner_id');
       assert.equal(url.searchParams.get('owner_id'), `eq.${subject}`);
       assert.equal(url.searchParams.has('limit'), false);
       assert.equal(options.headers.apikey, key);
       assert.equal(options.headers.Authorization, undefined);
       assert.equal(options.redirect, 'error');
       assert.ok(options.signal instanceof AbortSignal);
-      return new Response(JSON.stringify(rows.map(row => ({ ...row, internal_key: key, owner_id: 'hidden' }))));
+      return new Response(JSON.stringify(rows.map(row => ({ ...row, internal_key: key, owner_id: subject }))));
     });
     const response = responseCapture();
     // Client input must not replace the configured DB URL or server credential.
@@ -305,18 +305,119 @@ test('A creates, lists, reads, updates and deletes UUID notes with server-assign
     assert.ok(listing.body.some(note => note.id === id));
     const fetched = await send('GET', `/api/notes/${id}?id=${suppliedId}`, undefined, { id: suppliedId });
     assert.deepEqual(fetched.body, { id, title: 'Synthetic created title', body: 'Synthetic body' });
-    const updated = await send('PUT', `/api/notes/${id}`, { id: suppliedId,
-      title: 'Synthetic updated title', body: 'Synthetic updated body', owner_id: randomUUID() });
+    const updated = await send('PUT', `/api/notes/${id}`, {
+      title: 'Synthetic updated title', body: 'Synthetic updated body' });
     assert.deepEqual(updated.body, { id, title: 'Synthetic updated title', body: 'Synthetic updated body' });
     assert.equal(store.get(id).owner_id, subject);
     assert.equal((await send('DELETE', `/api/notes/${id}`)).code, 200);
     assert.equal((await send('GET', `/api/notes/${id}`)).code, 404);
     assert.equal((await send('PUT', `/api/notes/${id}`, { title: 'Missing', body: '' })).code, 404);
     assert.equal((await send('DELETE', `/api/notes/${id}`)).code, 404);
-    assert.ok(operations.filter(op => op.method === 'GET' && !op.id).every(op => op.owner === subject));
+    assert.ok(operations.filter(op => op.method !== 'POST').every(op => op.owner === subject));
     for (const row of rows) assert.deepEqual(store.get(row.id), { ...row, owner_id: null });
     assert.deepEqual(config.allowedRoutes, ['GET /api/notes', 'POST /api/notes',
       'GET /api/notes/:id', 'PUT /api/notes/:id', 'DELETE /api/notes/:id']);
+  });
+});
+
+test('A and B keep their own CRUD and cannot access each other or unowned notes', async () => {
+  await configured(async () => {
+    const { store, operations } = mockDatabase();
+    const otherSubject = randomUUID();
+    for (const row of rows.slice(0, 3)) store.get(row.id).owner_id = subject;
+    store.get(rows[3].id).owner_id = otherSubject;
+    const unowned = { id: randomUUID(), owner_id: null, title: 'Unowned synthetic title', content: '' };
+    store.set(unowned.id, unowned);
+
+    for (const [userId, ownId, foreignId] of [
+      [subject, rows[0].id, rows[3].id],
+      [otherSubject, rows[3].id, rows[0].id],
+    ]) {
+      const bearer = await authorization({ sub: userId });
+      const start = operations.length;
+      async function send(method, path, body) {
+        const response = responseCapture();
+        await itemHandler({ method, url: path, headers: { authorization: bearer }, body,
+          query: { owner_id: store.get(foreignId).owner_id, userId: store.get(foreignId).owner_id } }, response);
+        return response;
+      }
+      const listing = await send('GET', `/api/notes?owner_id=${store.get(foreignId).owner_id}`);
+      assert.equal(listing.code, 200);
+      assert.ok(listing.body.some(note => note.id === ownId));
+      assert.ok(!listing.body.some(note => [foreignId, unowned.id].includes(note.id)));
+      for (const note of listing.body) {
+        assert.equal(store.get(note.id).owner_id, userId);
+        assert.deepEqual(Object.keys(note).sort(), ['body', 'id', 'title']);
+      }
+      const own = await send('GET', `/api/notes/${ownId}`);
+      assert.deepEqual(own.body, { id: ownId, title: store.get(ownId).title, body: store.get(ownId).content });
+
+      for (const deniedId of [foreignId, unowned.id, randomUUID()]) {
+        const before = structuredClone(store.get(deniedId));
+        for (const method of ['GET', 'PUT', 'DELETE']) {
+          const denied = await send(method, `/api/notes/${deniedId}?owner_id=${userId}&id=${ownId}`,
+            { title: 'Must not change', body: 'Must not change', userId, role: 'service_role' });
+          assert.equal(denied.code, 404);
+          assert.deepEqual(denied.body, { error: 'NOTE_NOT_FOUND' });
+          assert.deepEqual(store.get(deniedId), before);
+        }
+      }
+      const collision = await send('POST', '/api/notes', { id: foreignId, title: 'Must not replace', body: '' });
+      assert.equal(collision.code, 409);
+      const created = await send('POST', `/api/notes?owner_id=${store.get(foreignId).owner_id}`, {
+        title: 'Synthetic owner test', body: 'Synthetic body', owner_id: store.get(foreignId).owner_id,
+        userId: store.get(foreignId).owner_id, role: 'service_role',
+      });
+      assert.equal(created.code, 201);
+      assert.equal(store.get(created.body.id).owner_id, userId);
+      const updated = await send('PUT', `/api/notes/${created.body.id}?owner_id=${store.get(foreignId).owner_id}`, {
+        title: 'Synthetic edited title', body: 'Synthetic edited body',
+      });
+      assert.equal(updated.code, 200);
+      assert.deepEqual(updated.body, { id: created.body.id, title: 'Synthetic edited title', body: 'Synthetic edited body' });
+      assert.equal(store.get(created.body.id).owner_id, userId);
+      assert.equal((await send('DELETE', `/api/notes/${created.body.id}`)).code, 200);
+      assert.equal(store.has(created.body.id), false);
+      assert.ok(operations.slice(start).filter(op => op.method !== 'POST').every(op => op.owner === userId));
+    }
+    assert.deepEqual(store.get(unowned.id), unowned);
+  });
+});
+
+test('PUT rejects owner_id fields before DB access and preserves the existing owner and contents', async () => {
+  await configured(async () => {
+    const { store, operations } = mockDatabase();
+    const id = rows[0].id;
+    store.get(id).owner_id = subject;
+    const before = structuredClone(store.get(id));
+    const bearer = await authorization();
+    for (const owner_id of [randomUUID(), subject, null]) {
+      const response = responseCapture();
+      await handler({ method: 'PUT', url: `/api/notes/${id}`, headers: { authorization: bearer },
+        body: { title: 'Must not change', body: 'Must not change', owner_id } }, response);
+      assert.equal(response.code, 400);
+      assert.deepEqual(response.body, { error: 'OWNER_CHANGE_NOT_ALLOWED' });
+      assert.deepEqual(store.get(id), before);
+    }
+    assert.equal(operations.length, 0);
+  });
+});
+
+test('all CRUD responses fail closed if the DB returns a row with a foreign, null or missing owner', async () => {
+  await configured(async () => {
+    const bearer = await authorization();
+    const id = rows[0].id;
+    for (const owner_id of [randomUUID(), null, undefined]) {
+      mockUpstream(async () => new Response(JSON.stringify([{ ...rows[0], owner_id }])));
+      for (const [method, path] of [['GET', '/api/notes'], ['GET', `/api/notes/${id}`],
+        ['POST', '/api/notes'], ['PUT', `/api/notes/${id}`], ['DELETE', `/api/notes/${id}`]]) {
+        const response = responseCapture();
+        await handler({ method, url: path, headers: { authorization: bearer },
+          body: { id, title: 'Synthetic title', body: '' } }, response);
+        assert.equal(response.code, 502);
+        assert.deepEqual(response.body, { error: 'NOTES_UNAVAILABLE' });
+      }
+    }
   });
 });
 

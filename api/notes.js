@@ -68,6 +68,9 @@ export default async function handler(request, response) {
           || typeof input.body !== 'string' || input.body.length > 20000) {
         throw new Error('Invalid note');
       }
+      if (request.method === 'PUT' && Object.hasOwn(input, 'owner_id')) {
+        return response.status(400).json({ error: 'OWNER_CHANGE_NOT_ALLOWED' });
+      }
       payload = { title: input.title.trim(), content: input.body };
       if (request.method === 'POST') {
         if (input.id !== undefined && (typeof input.id !== 'string' || !UUID.test(input.id))) {
@@ -82,13 +85,15 @@ export default async function handler(request, response) {
       return response.status(400).json({ error: 'INVALID_NOTE' });
     }
   }
-  endpoint.searchParams.set('select', 'id,title,content');
+  endpoint.searchParams.set('select', 'id,title,content,owner_id');
+  if (request.method !== 'POST') {
+    // Constrain reads and mutations in the DB request itself. For PUT, only
+    // title/content are patched, so the matched owner's ID cannot be changed.
+    endpoint.searchParams.set('owner_id', `eq.${login.userId}`);
+  }
   if (request.method !== 'POST' && id) {
     endpoint.searchParams.set('id', `eq.${id}`);
-    // Stage 3 intentionally has no owner check for individual notes.
-    // Stage 4 will restrict item GET, PUT and DELETE to the verified owner.
   } else if (request.method === 'GET') {
-    endpoint.searchParams.set('owner_id', `eq.${login.userId}`);
     endpoint.searchParams.set('order', 'created_at.asc,id.asc');
   }
 
@@ -109,6 +114,7 @@ export default async function handler(request, response) {
     if (!Array.isArray(rows) || (id && rows.length > 1) || rows.some(row => !row
         || typeof row.id !== 'string' || !UUID.test(row.id)
         || (id && row.id.toLowerCase() !== id)
+        || row.owner_id !== login.userId
         || typeof row.title !== 'string' || typeof row.content !== 'string'
         || row.title.includes(secret) || row.content.includes(secret))) {
       throw new Error('Invalid notes response');

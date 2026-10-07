@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { runAttackChecks } from '../src/attack-check.mjs';
 
 const root = new URL('../', import.meta.url);
-const config = JSON.parse(await readFile(new URL('aleph.config.json', root), 'utf8'));
+const config = { ...JSON.parse(await readFile(new URL('aleph.config.json', root), 'utf8')), step: 3 };
 
 test('stage 3 deployment builds empty static data and the checked Git identity', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'aleph-step3-'));
@@ -15,6 +15,7 @@ test('stage 3 deployment builds empty static data and the checked Git identity',
     for (const path of ['scripts', 'aleph.config.json']) {
       await cp(new URL(path, root), join(directory, path), { recursive: true });
     }
+    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify(config));
     execFileSync(process.execPath, ['scripts/build-public.mjs'], { cwd: directory,
       windowsHide: true, stdio: 'pipe', env: { ...process.env, VERCEL_GIT_PROVIDER: 'github',
         VERCEL_GIT_REPO_OWNER: 'RockCandy444', VERCEL_GIT_REPO_SLUG: 'choi-bujang-secret-vault',
@@ -25,7 +26,7 @@ test('stage 3 deployment builds empty static data and the checked Git identity',
     assert.equal(identity.step, 3);
     assert.equal(identity.commit, 'b'.repeat(40));
     assert.equal(Object.hasOwn(identity, 'sampleMarker'), false);
-    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify({ ...config, step: 4 }));
+    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify({ ...config, step: 5 }));
     assert.throws(() => execFileSync(process.execPath, ['scripts/build-public.mjs', '--local'],
       { cwd: directory, windowsHide: true, stdio: 'pipe' }));
   } finally { await rm(directory, { recursive: true, force: true }); }

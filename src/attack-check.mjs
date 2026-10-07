@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 
 export async function runAttackChecks(config) {
-  if (![1, 2, 3].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3, 4].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -35,7 +35,7 @@ export async function runAttackChecks(config) {
       // A non-JSON response is a failed check, not a successful deployment.
     }
   }
-  if (config.step === 3) {
+  if (config.step === 3 || config.step === 4) {
     const results = [{ attackId: 'anonymous_static_note_read',
       expected: '정적 JSON은 HTTP 200의 빈 메모 목록',
       observed: response.status === 200 && empty ? 'HTTP 200: 정적 메모 0건'
@@ -71,11 +71,11 @@ export async function runAttackChecks(config) {
       if (checked.status !== 200 || text.includes('SAMPLE_NOTE_1')) failures.push(path);
       if (path === '/aleph.json') {
         let current = false;
-        try { current = JSON.parse(text).step === 3; } catch { /* Missing identity fails. */ }
-        results.push({ attackId: 'deployment_stage3_identity',
-          expected: '운영 배포 식별 파일에 step 3 기록',
-          observed: checked.status === 200 && current ? 'HTTP 200: step 3 확인'
-            : `HTTP ${checked.status}: 3단계 배포 식별 미확인` });
+        try { current = JSON.parse(text).step === config.step; } catch { /* Missing identity fails. */ }
+        results.push({ attackId: `deployment_stage${config.step}_identity`,
+          expected: `운영 배포 식별 파일에 step ${config.step} 기록`,
+          observed: checked.status === 200 && current ? `HTTP 200: step ${config.step} 확인`
+            : `HTTP ${checked.status}: ${config.step}단계 배포 식별 미확인` });
       }
     }
     results.push({ attackId: 'static_stage1_marker_absent',
@@ -85,6 +85,18 @@ export async function runAttackChecks(config) {
     results.push({ attackId: 'authenticated_a_crud',
       expected: '운영 A 로그인으로 추가·조회·수정·삭제 후 GET 404',
       observed: '미실행: 자동 점검은 로그인 비밀값을 사용하지 않음; 운영 A 화면에서 별도 확인 필요' });
+    if (config.step === 4) {
+      // Local reports belong in README, not in this deployment request run.
+      for (const [attackId, expected] of [
+        ['authenticated_b_crud', '운영 B 로그인으로 추가·조회·수정·삭제 후 GET 404'],
+        ['foreign_note_access_denied', '운영 A/B의 상대 메모 GET·PUT·DELETE는 HTTP 404로 거부'],
+        ['owner_change_denied', '운영 A/B의 owner_id 변경 PUT은 HTTP 400으로 거부'],
+        ['owner_notes_preserved', '운영 상대 접근 검사 뒤 A/B 메모의 내용과 소유자 보존'],
+      ]) {
+        results.push({ attackId, expected,
+          observed: '미실행: 운영 A/B 인증 요청을 보내지 않음; 로컬 검사 결과와 별도 확인 필요' });
+      }
+    }
     return results;
   }
   if (config.step === 2) {

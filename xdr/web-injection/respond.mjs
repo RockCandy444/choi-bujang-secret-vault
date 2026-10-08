@@ -15,6 +15,7 @@ const PATTERNS = new Set([
   '요청 인자의 SQL 구문 삽입',
   '요청 인자의 스크립트 태그 삽입',
   '요청 인자의 상위 경로 이동 반복',
+  '요청 인자의 명령 구분자 삽입',
 ]);
 const STATUSES = new Set(['pending_verified_binding', 'suppressed_normal_source', 'expired_candidate']);
 const hash = value => createHash('sha256').update(value).digest('hex');

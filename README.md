@@ -20,17 +20,17 @@ Supabase Auth 로그인·로그아웃과 가상 메모 CRUD를 보존하고, 모
 
 ## 보너스 xdr-02 저장점 (2026-10-08)
 
-`xdr/web-injection/read-alerts.mjs`는 수업용 Wazuh 경보 26건에서 시각·출발 주소·가상 계정·규칙 수준·설명만 26줄로 추출하고 의심스러운 비밀값은 가립니다. 원본 경보는 보존했습니다. `patterns.json`에는 MITRE ATT&CK [T1190](https://attack.mitre.org/techniques/T1190/)을 기준으로 SQL 구문 삽입·스크립트 태그 삽입·상위 경로 이동 반복의 이름·조건·한 줄 근거를 정리했습니다. 스크립트 태그는 MITRE CWE-79를 보조 근거로 삼는 점검 신호이며 태그만으로 T1190 성립이나 침입 성공을 확정하지 않습니다.
+`xdr/web-injection/read-alerts.mjs`는 수업용 Wazuh 경보 26건에서 시각·출발 주소·가상 계정·규칙 수준·설명만 26줄로 추출하고 의심스러운 비밀값은 가립니다. 원본 경보는 보존했습니다. `patterns.json`에는 MITRE ATT&CK [T1190](https://attack.mitre.org/techniques/T1190/)을 기준으로 SQL 구문 삽입·스크립트 태그 삽입·상위 경로 이동 반복·명령 구분자 삽입의 이름·조건·한 줄 근거를 정리했습니다. 스크립트 태그는 MITRE CWE-79를 보조 근거로 삼는 점검 신호이며 태그만으로 T1190 성립이나 침입 성공을 확정하지 않습니다. 명령 구분자 패턴은 T1190의 Cutting Edge 명령 주입 사례와 MITRE CWE-78을 근거로 추가했습니다.
 
-`decide.mjs`는 세 패턴을 상수로 복사해 `decide(alert)`만 내보냅니다. 다른 파일·패키지·읽기 모듈을 불러오거나 파일·네트워크·환경변수를 사용하지 않습니다. 반환은 `{action, confidence, reason}`이며 0.85 이상은 `block`, 0.5 이상은 `alert`, 그 아래는 `record`입니다. 반복 요청 3건 이상과 규칙 수준 10 이상 등의 기준은 가상 경보용 판단 기준으로 MITRE 공식 수치가 아닙니다. 단순 수업명·검색어는 공격 패턴으로 일치시키지 않으며, 세 패턴 범위 밖의 명령 구분자 경보 `wi-06`은 `alert`·`근거 패턴 없음`으로 남깁니다.
+`decide.mjs`는 네 패턴을 상수로 복사해 `decide(alert)`만 내보냅니다. 다른 파일·패키지·읽기 모듈을 불러오거나 파일·네트워크·환경변수를 사용하지 않습니다. 반환은 `{action, confidence, reason}`이며 0.85 이상은 `block`, 0.5 이상은 `alert`, 그 아래는 `record`입니다. 반복 요청 3건 이상과 규칙 수준 10 이상 등의 기준은 가상 경보용 판단 기준으로 MITRE 공식 수치가 아닙니다. 단순 수업명·검색어는 공격 패턴으로 일치시키지 않습니다. 명령 구분자는 유효한 가상 IPv4 출발 주소와 연속·동일 주소 반복의 명시적 설명까지 확인합니다.
 
-다시 실행: 저장소 루트에서 `npm run xdr:run -- web-injection`을 실행하고 파일 탐색기 **xdr → web-injection → result.json**에서 `counts`와 `decisions`를 확인합니다. 이번 저장점에서 실제 재실행한 결과는 **block 7건 · alert 10건 · record 9건**, 총 26건입니다. 정상 이벤트 `wi-18`~`wi-26`은 모두 `record`이며 정상 차단은 0건입니다. 뚜렷한 패턴 일치는 차단 후보, 애매한 경보는 알림, 정상 이벤트는 기록이어야 합니다. 이는 가상 경보 연습 결과이며 실제 접속 차단이나 심판 판정이 아닙니다.
+다시 실행: 저장소 루트에서 `npm run xdr:run -- web-injection`을 실행하고 파일 탐색기 **xdr → web-injection → result.json**에서 `counts`와 `decisions`를 확인합니다. 심판의 `X02_CLEAR_NOT_BLOCKED` 첫 오류에 따라 누락됐던 명령 구분자 패턴 하나를 보완했습니다. 명령 표기가 11번 반복되고 수준이 11인 `wi-06`만 `alert`에서 `block`(확신도 0.95)으로 바뀌었으며 다른 경보의 분류는 보존했습니다. 수정 후 실제 재실행 결과는 **block 8건 · alert 9건 · record 9건**, 총 26건입니다. 정상 이벤트 `wi-18`~`wi-26`은 모두 `record`이며 정상 차단은 0건입니다. 뚜렷한 패턴 일치는 차단 후보, 애매한 경보는 알림, 정상 이벤트는 기록이어야 합니다. 이는 가상 경보 연습 결과이며 실제 접속 차단이나 심판 재판정 통과를 뜻하지 않습니다.
 
-`node xdr/web-injection/respond.mjs`는 차단 결과만 `deny-candidates.json`에 비활성 거부 후보로 저장하고 알림을 기존 `xdr/alerts.log` 뒤에 한 줄씩 추가합니다. 근거 경보 번호와 사건 시각부터 15분 뒤의 만료 시각을 붙이며 재전송으로 만료를 연장하지 않습니다. 같은 공유 주소의 정상 경보를 기억해 후보를 제외하거나 억제합니다. 앞선 실제 대응 실행에서 후보 7건과 알림 17줄을 기록했고, 9월 27일 시험 사건이므로 후보는 모두 만료·비활성(`active: false`, `match: null`)입니다. 이번 저장점에서는 분류 실행만 다시 수행했으며 대응 로그를 중복 추가하지 않았습니다.
+`node xdr/web-injection/respond.mjs`는 차단 결과만 `deny-candidates.json`에 비활성 거부 후보로 저장하고 알림을 기존 `xdr/alerts.log` 뒤에 한 줄씩 추가합니다. 근거 경보 번호와 사건 시각부터 15분 뒤의 만료 시각을 붙이며 재전송으로 만료를 연장하지 않습니다. 같은 공유 주소의 정상 경보를 기억해 후보를 제외하거나 억제합니다. 수정 후 실제 대응 실행에서는 후보 8건을 기록하고 알림 17줄(block 8건·alert 9건)을 추가했으며 이전 로그는 보존했습니다. 9월 27일 시험 사건이므로 후보는 모두 만료·비활성(`active: false`, `match: null`)입니다.
 
 **ZTNA 자동 연결과 정상 요청 통과는 미완료입니다.** 기존 `src/decider.mjs`의 실제 규칙은 `starter.deny` 하나로 모든 요청을 거부합니다. 요청 계약에 출발 IP와 동적 규칙 연결이 없으므로 검증된 주체·기기 연결 및 정상 허용 정책이 필요합니다. 기존 판정기·로그인·메모 소유자 보호·학습 DB·xdr-01 자료는 보존했습니다.
 
-`node --test test/web-injection-respond.test.mjs`로 8건이 통과했습니다. 별도 로컬 검사로 패턴 상수 일치·격리 환경 계산·26건 분류·정상 차단 0건·원본 해시 보존을 확인했습니다. 설정의 단계 5, Git origin·기록된 운영 주소, 로그인 발급자·audience·JWKS, 메모 API의 다섯 허용 경로와 원본 `/rest/v1/notes` 주소를 현재 구현과 대조했고 설정 및 `judgeIssuer`는 변경하지 않았습니다. `src/attack-check.mjs`의 기존 실제 요청 점검과 운영 A/B·원본 API·학습 DB 점검의 미실행 표기를 보존했습니다. 이번 XDR 결과를 운영 요청 결과로 기록하지 않습니다. 새 배포·운영 요청 재검사·심판 재판정·`npm run bundle`은 이번 저장점에서 미실행입니다. `bundle-notes.json`과 `artifacts/submission.json`은 커밋하지 않습니다.
+`node --test test/web-injection-respond.test.mjs`로 9건이 통과했습니다. 명령 구분자 반복을 인식하되 단일 표기·주소 누락·단순 구분 문자는 차단하지 않는 회귀 검사를 추가했습니다. 별도 로컬 검사로 패턴 상수 일치·격리 환경 계산·26건 분류·정상 차단 0건·원본 해시 보존을 확인했습니다. 설정의 단계 5, Git origin·기록된 운영 주소, 로그인 발급자·audience·JWKS, 메모 API의 다섯 허용 경로와 원본 `/rest/v1/notes` 주소는 앞선 저장점에서 구현과 대조했고 이번에도 설정 및 `judgeIssuer`는 변경하지 않았습니다. `src/attack-check.mjs`의 기존 실제 요청 점검과 운영 A/B·원본 API·학습 DB 점검의 미실행 표기를 보존했습니다. 이번 XDR 결과를 운영 요청 결과로 기록하지 않습니다. 새 배포·운영 요청 재검사·심판 재판정·`npm run bundle`은 이번 수정에서 미실행입니다. `bundle-notes.json`과 `artifacts/submission.json`은 커밋하지 않습니다.
 
 ## 보너스 xdr-01 저장점 (2026-10-08)
 

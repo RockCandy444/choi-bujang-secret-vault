@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { basename, join, resolve, sep } from 'node:path';
 import { test } from 'node:test';
 import { respond } from '../xdr/web-injection/respond.mjs';
+import { decide } from '../xdr/web-injection/decide.mjs';
 import { decide as ztnaDecide, RULE_IDS } from '../src/decider.mjs';
 import { fixtureRequests } from '../scripts/fixture-7.mjs';
 
@@ -30,10 +31,10 @@ async function isolated(run) {
 test('가상 경보의 명확한 패턴 일치만 만료·근거 번호가 있는 비활성 후보로 저장한다', async () => {
   await isolated(async root => {
     const result = await respond(alerts, { root, now });
-    assert.deepEqual(result.counts, { block: 7, alert: 10, record: 9, candidates: 7, suppressed: 0, expired: 7, applied: 0 });
+    assert.deepEqual(result.counts, { block: 8, alert: 9, record: 9, candidates: 8, suppressed: 0, expired: 8, applied: 0 });
     assert.equal(result.ztnaConnected, false);
     const { rules } = await candidates(root);
-    assert.equal(rules.length, 7);
+    assert.equal(rules.length, 8);
     for (const rule of rules) {
       assert.equal(rule.active, false);
       assert.equal(rule.match, null);
@@ -49,9 +50,24 @@ test('가상 경보의 명확한 패턴 일치만 만료·근거 번호가 있�
     assert.equal(result.notices, 17);
     assert.equal(notices.length, 17);
     assert.ok(notices.every(row => ['alert', 'block'].includes(row.action)));
-    assert.equal(notices.find(row => row.alertId === 'wi-06').status, 'notification_only');
+    assert.equal(notices.find(row => row.alertId === 'wi-06').status, 'expired_candidate');
+    assert.ok(rules.some(rule => rule.alertIds.includes('wi-06') && rule.pattern === '요청 인자의 명령 구분자 삽입'));
     assert.ok(normal && !rules.some(rule => rule.alertIds.includes(normal.id)));
   });
+});
+
+test('명령 구분자 반복은 경보 번호에 의존하지 않고 단일 표기·주소 누락·단순 구분 문자는 차단하지 않는다', () => {
+  const command = alerts.find(alert => alert.rule.description.includes('명령 구분자 표기'));
+  assert.equal(decide({ ...command, id: 'renamed-alert' }).action, 'block');
+  for (const candidate of [
+    { ...command, data: { ...command.data, count: '1' } },
+    { ...command, data: { ...command.data, srcip: undefined } },
+    { ...command, rule: { ...command.rule, description: '명령 구분자 표기가 11번에 있습니다.' } },
+    { ...command, rule: { ...command.rule, description: '이름 검색에 구분 문자가 11건 있습니다.' } },
+  ]) assert.equal(decide(candidate).action, 'alert');
+  assert.ok(alerts.filter(alert => alert.rule.level >= 5 && alert.rule.level <= 8)
+    .every(alert => decide(alert).action === 'alert'));
+  assert.ok(alerts.filter(alert => alert.rule.level <= 3).every(alert => decide(alert).action === 'record'));
 });
 
 test('재전송은 후보를 중복 생성하거나 만료를 연장하지 않고 기존 로그 뒤에 추가한다', async () => {

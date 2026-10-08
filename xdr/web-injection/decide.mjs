@@ -1,4 +1,4 @@
-// patterns.json의 세 패턴을 그대로 옮긴 상수입니다. 이 파일만으로 판단합니다.
+// patterns.json의 네 패턴을 그대로 옮긴 상수입니다. 이 파일만으로 판단합니다.
 const PATTERNS = Object.freeze([
   Object.freeze({
     name: '요청 인자의 SQL 구문 삽입',
@@ -14,6 +14,11 @@ const PATTERNS = Object.freeze([
     name: '요청 인자의 상위 경로 이동 반복',
     condition: '파일·경로 요청 인자에 ../ 또는 인코딩된 동등 형태로 상위 경로를 거슬러 올라가는 표기가 반복되거나, 경보 설명에 여러 단계의 경로 이동·경로 이탈 반복이 명시된 경우를 찾는다. 한 인자 안의 이동 반복과 같은 출발 주소의 요청 반복을 구분하여 시각·횟수·설명으로 확인한다. up이라는 단어나 정상 파일 이름만으로는 일치시키지 않으며, 표식만으로 허용 경로 밖의 파일 접근 성공을 확정하지 않는다.',
     evidence: 'MITRE ATT&CK T1190의 C0017 사례는 공개 앱의 디렉터리 경로 이탈 취약점 악용을 포함하며, ../를 통한 상위 경로 이동 형태는 MITRE CWE-22의 경로 이탈 설명을 따른다: https://attack.mitre.org/techniques/T1190/ 및 https://cwe.mitre.org/data/definitions/22.html',
+  }),
+  Object.freeze({
+    name: '요청 인자의 명령 구분자 삽입',
+    condition: '경보 설명에 요청 인자의 명령 구분자 삽입 표기가 명시된 경우를 찾는다. 같은 출발 주소의 연속 요청에서 해당 표기가 반복된다는 횟수·설명과 높은 규칙 수준이 함께 확인될 때만 차단 후보로 본다. 단순한 이름 구분 문자, 한 번의 의심 표기, 높은 수준만으로는 차단하지 않으며 실제 명령 실행 성공도 확정하지 않는다.',
+    evidence: 'MITRE ATT&CK T1190의 Cutting Edge 사례는 외부 공개 Ivanti 앱의 명령 주입 취약점 악용을 포함하며, 명령 구분자 등 특수 요소를 통한 명령 주입 형태는 MITRE CWE-78을 보조 근거로 삼는다: https://attack.mitre.org/techniques/T1190/ 및 https://cwe.mitre.org/data/definitions/78.html',
   }),
 ]);
 const NO_PATTERN = '근거 패턴 없음';
@@ -68,6 +73,10 @@ export function decide(alert) {
   const values = argumentValues(text(alert?.data?.url));
   const describedCount = description.match(/(\d+)\s*(?:번|건|회)/u);
   const requestCount = count(alert?.data?.count) ?? count(describedCount?.[1]);
+  // 이번 명령 구분자 후보는 가상 경보의 유효한 IPv4 출발 주소와 반복 근거를 확인합니다.
+  const source = alert?.data?.srcip;
+  const sourceKnown = typeof source === 'string' && /^\d{1,3}(?:\.\d{1,3}){3}$/u.test(source)
+    && source.split('.').every(part => Number(part) <= 255);
   const denied = /삽입\s*표식(?:은|이)?\s*아(?:닙|니)|공격\s*표기(?:는|가)?\s*없/u.test(description);
 
   // 이어진 구문 또는 경보에 명시된 설명을 확인합니다.
@@ -80,10 +89,13 @@ export function decide(alert) {
   const sqlDescription = !denied && /SQL\s*(?:구문|표식|삽입|주입)|데이터베이스\s*조회.*이어\s*붙/iu.test(description);
   const scriptDescription = !denied && /스크립트\s*(?:삽입|표식|태그)/u.test(description);
   const traversalDescription = !denied && /경로.*(?:거슬러|이탈)/u.test(description);
+  const commandDescription = !denied && /명령\s*구분자\s*(?:삽입\s*)?(?:표기|표식)/u.test(description);
+  const commandRepeated = /연속\s*요청|같은\s*주소.*반복/u.test(description);
   const matches = [
     sqlArgument || sqlDescription,
     scriptArgument || scriptDescription,
     traversalDepth > 0 || traversalDescription,
+    commandDescription,
   ];
 
   let confidence = 0;
@@ -93,7 +105,8 @@ export function decide(alert) {
     // 단일 표식은 검토 대상으로, 반복과 높은 규칙 수준이 함께 있으면 뚜렷한 일치로 봅니다.
     let score = 0.7;
     if (requestCount !== null && requestCount >= REPEATED_REQUESTS) {
-      score = level !== null && level >= HIGH_LEVEL ? 0.95 : 0.8;
+      const repetitionConfirmed = index !== 3 || (sourceKnown && commandRepeated);
+      score = level !== null && level >= HIGH_LEVEL && repetitionConfirmed ? 0.95 : 0.8;
     }
     if (index === 2 && traversalDepth >= 2) {
       score = Math.max(score, level !== null && level >= HIGH_LEVEL ? 0.9 : 0.8);

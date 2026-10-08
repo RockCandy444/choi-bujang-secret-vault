@@ -106,6 +106,20 @@
       "expiresAt": "2026-09-27T05:41:02.000Z",
       "pattern": "요청 인자의 SQL 구문 삽입",
       "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.web_injection.cac9fc33d83679575dcf8c7f475d6ee59196bd9584101de345a7c3e3de2ffae1",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "77114ff946e607fabc7bb9d27477249c817810f9a8ff0a9d003ef0cd764b6399",
+      "alertIds": [
+        "wi-06"
+      ],
+      "createdAt": "2026-09-27T02:07:08.000Z",
+      "expiresAt": "2026-09-27T02:22:08.000Z",
+      "pattern": "요청 인자의 명령 구분자 삽입",
+      "status": "expired_candidate"
     }
   ]
 }

@@ -1,0 +1,111 @@
+{
+  "schema": "aleph.xdr.deny-candidates.v1",
+  "normalSources": [
+    "16d747215f2c942ceda045c08ff776a3b1e95be6d92412852b6bf82f4b156f79",
+    "e98cd9afa5f619b0b89d87313fc690cc5fb4f6624951de801d8ad0db3f400a8e",
+    "cb8ede0e38bf2023f4b1d9ac5512fa3d9fb5c7a055654ed3531fe86f4ddd5843",
+    "a12ba2f64bfd7510c3f76ff99e653ed0a64ac91558c5ef3e24f7d0e8f2495763",
+    "85592cc59e3446aeb8b7a896f89959b0b22519f8ef65a5c0b5826a4818b60fef",
+    "3da2494838d0e7bd1d416c684a9570fba5514d11770df6834b49dd9a5b461efa"
+  ],
+  "rules": [
+    {
+      "ruleId": "xdr.web_injection.424b590625236c8a494fd5d1ef02351defe17b8516882fc3dcc77c223497db56",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "631f08140b24b7274d12df3c37a1a80ce5876dafd7007d772e0114fddf88b682",
+      "alertIds": [
+        "wi-01"
+      ],
+      "createdAt": "2026-09-27T00:13:01.000Z",
+      "expiresAt": "2026-09-27T00:28:01.000Z",
+      "pattern": "요청 인자의 SQL 구문 삽입",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.web_injection.b658f1f3175f994dd664e952533ebd52f455f25bcdb4787f7edcf3dee094eabf",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "631f08140b24b7274d12df3c37a1a80ce5876dafd7007d772e0114fddf88b682",
+      "alertIds": [
+        "wi-02"
+      ],
+      "createdAt": "2026-09-27T00:13:20.000Z",
+      "expiresAt": "2026-09-27T00:28:20.000Z",
+      "pattern": "요청 인자의 스크립트 태그 삽입",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.web_injection.1bec27756d6c3f8a3d40e4d4cfdee60961282a946602d449760508ea9c7148d7",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "7a6df41289b1c351b6d766c9ce05632932b38d7df6ab1d6efae9937ceac8cfa9",
+      "alertIds": [
+        "wi-03"
+      ],
+      "createdAt": "2026-09-27T00:16:04.000Z",
+      "expiresAt": "2026-09-27T00:31:04.000Z",
+      "pattern": "요청 인자의 상위 경로 이동 반복",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.web_injection.c7c3583ea23cb2fbffc55d1f4f4f4cdf4ddb652612815c5f25cd7951cb08642d",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "766b50238381910d54b57332411a941178c3c04a87d4e6477f0a3c726ccbb09f",
+      "alertIds": [
+        "wi-04"
+      ],
+      "createdAt": "2026-09-27T01:02:11.000Z",
+      "expiresAt": "2026-09-27T01:17:11.000Z",
+      "pattern": "요청 인자의 SQL 구문 삽입",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.web_injection.c02f8171cd5e418847a5979b904a27bd95288c3995c69f6b3ac9488783189310",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "59d2ad65e315e63ebc71b3ec885517cf3e112fc519d38f530022811f4423a524",
+      "alertIds": [
+        "wi-05"
+      ],
+      "createdAt": "2026-09-27T01:18:33.000Z",
+      "expiresAt": "2026-09-27T01:33:33.000Z",
+      "pattern": "요청 인자의 SQL 구문 삽입",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.web_injection.957459823c98259a5793feb54bdc668b398041a0d5aeb9e3913139f95b4f33e8",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "f87aa6446b7d15d7b76a2537454abdecb5a1bb2cc7d22f627033a1ee8f5676e7",
+      "alertIds": [
+        "wi-07"
+      ],
+      "createdAt": "2026-09-27T04:04:19.000Z",
+      "expiresAt": "2026-09-27T04:19:19.000Z",
+      "pattern": "요청 인자의 상위 경로 이동 반복",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.web_injection.c8e422c5995f4e1a74ab7163af8a34a50ca2a5f7ec373265fa935849eb1b1105",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "0a45682780019ce2fab812c7198d305c50e3df4f4cf8839670bc99a81d45048c",
+      "alertIds": [
+        "wi-08"
+      ],
+      "createdAt": "2026-09-27T05:26:02.000Z",
+      "expiresAt": "2026-09-27T05:41:02.000Z",
+      "pattern": "요청 인자의 SQL 구문 삽입",
+      "status": "expired_candidate"
+    }
+  ]
+}

@@ -1,0 +1,167 @@
+{
+  "schema": "aleph.xdr.result.v1",
+  "moduleKey": "web-injection",
+  "decisions": [
+    {
+      "alertId": "wi-01",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "요청 인자의 SQL 구문 삽입"
+    },
+    {
+      "alertId": "wi-02",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "요청 인자의 스크립트 태그 삽입"
+    },
+    {
+      "alertId": "wi-03",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "요청 인자의 상위 경로 이동 반복"
+    },
+    {
+      "alertId": "wi-04",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "요청 인자의 SQL 구문 삽입"
+    },
+    {
+      "alertId": "wi-05",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "요청 인자의 SQL 구문 삽입"
+    },
+    {
+      "alertId": "wi-06",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-07",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "요청 인자의 상위 경로 이동 반복"
+    },
+    {
+      "alertId": "wi-08",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "요청 인자의 SQL 구문 삽입"
+    },
+    {
+      "alertId": "wi-09",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-10",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-11",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-12",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-13",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-14",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-15",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-16",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-17",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-18",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-19",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-20",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-21",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-22",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-23",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-24",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-25",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "wi-26",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    }
+  ],
+  "counts": {
+    "block": 7,
+    "alert": 10,
+    "record": 9
+  }
+}

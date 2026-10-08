@@ -1,0 +1,179 @@
+{
+  "schema": "aleph.xdr.result.v1",
+  "moduleKey": "brute-force",
+  "decisions": [
+    {
+      "alertId": "bf-01",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-02",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "여러 계정에 같은 비밀번호 대입"
+    },
+    {
+      "alertId": "bf-03",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-04",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-05",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-06",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-07",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-08",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-09",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "여러 계정에 같은 비밀번호 대입"
+    },
+    {
+      "alertId": "bf-10",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-11",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-12",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-13",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-14",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-15",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-16",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-17",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-18",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-19",
+      "action": "alert",
+      "confidence": 0.5,
+      "reason": "같은 주소의 짧은 시간 연속 로그인 실패"
+    },
+    {
+      "alertId": "bf-20",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "bf-21",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "bf-22",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "bf-23",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "bf-24",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "bf-25",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "bf-26",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "bf-27",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "bf-28",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    }
+  ],
+  "counts": {
+    "block": 10,
+    "alert": 9,
+    "record": 9
+  }
+}

@@ -18,6 +18,20 @@ Supabase Auth 로그인·로그아웃과 가상 메모 CRUD를 보존하고, 모
 - 로컬 빌드: `node scripts/build-public.mjs --local`.
 - 로컬 검사: `node --test test/*.test.mjs`. 로컬 검사는 실제 심판 판정이 아닙니다.
 
+## 보너스 xdr-01 저장점 (2026-10-08)
+
+`xdr/brute-force/read-alerts.mjs`는 수업용 Wazuh 경보에서 시각·출발 주소·가상 계정·규칙 수준·설명만 추출합니다. 28건에서 28줄을 만들고 비밀값처럼 보이는 값은 가립니다. 원본 경보는 보존했습니다. `patterns.json`에는 MITRE ATT&CK [T1110](https://attack.mitre.org/techniques/T1110/)의 연속 로그인 실패와 [T1110.003](https://attack.mitre.org/techniques/T1110/003/)의 여러 계정에 같은 비밀번호 대입, 두 패턴의 이름·조건·한 줄 근거가 있습니다.
+
+`decide.mjs`는 명확한 공격을 로컬 패턴으로 판단하고, 애매한 경보에만 TypeSafe Jev의 공격 가능성(`noul`)을 요청합니다. 반환은 `{action, confidence, reason}`이며 0.85 이상은 `block`, 0.5 이상은 `alert`, 그 아래는 `record`입니다. 실패 15건 이상·규칙 수준 10 이상은 이 가상 경보용 기준으로 MITRE 공식 수치가 아닙니다. Jev에는 숫자·사실 여부만 보내며 원문·주소·계정 식별자는 보내지 않습니다. 서버 환경변수 `TYPESAFE_API_KEY`가 없거나 오류·잘못된 응답·1초 초과가 발생하면 `alert`로 남깁니다. 심판용 판단 모듈에는 내장 모듈·패키지·JSON import가 없습니다.
+
+다시 실행: 저장소 루트에서 `npm run xdr:run -- brute-force`를 실행하고 `xdr/brute-force/result.json`의 `counts`와 `decisions`를 확인합니다. 이번 실제 로컬 재실행은 **block 10건 · alert 9건 · record 9건**, 총 28건입니다. 원본 설명상 정상 이벤트 `bf-20`~`bf-28`은 모두 `record`이며 정상 차단은 0건입니다. 정상 이벤트는 기록, 명확한 공격은 차단 후보, 애매한 사건은 알림이어야 합니다. 이는 가상 경보 연습 결과이며 실제 접속 차단이나 심판 판정이 아닙니다.
+
+`node xdr/brute-force/respond.mjs`는 거부 후보를 `deny-candidates.json`에 보존하고 알림을 `xdr/alerts.log`에 JSON 한 줄씩 추가합니다. 후보에는 근거 경보 번호와 사건 시각부터 15분 뒤의 만료 시각이 있으며 재전송으로 만료를 연장하지 않습니다. 같은 주소에서 정상 이벤트가 확인되면 주소 거부 후보를 제외하거나 억제합니다. 이전 실제 로컬 실행의 후보는 10건, 알림은 19줄이며 9월 27일의 시험 사건이므로 후보는 이미 만료됐습니다. 후보는 모두 `active: false`, `match: null`로 자동 적용되지 않습니다.
+
+**ZTNA 자동 연결은 미완료입니다.** 기존 `src/decider.mjs`의 구현된 규칙은 `starter.deny` 하나이며 모든 판정 요청을 거부하는 시작 틀을 그대로 보존했습니다. 현재 요청 계약에는 출발 IP가 없으므로 경보를 검증된 요청에 연결하는 운영 인터페이스와 정상 허용 정책이 필요합니다. 앱의 기존 로그인·메모 소유자 보호, 학습 DB와 다른 자료는 변경하지 않았습니다. 이 저장점을 ZTNA 정상 요청 통과·운영 자동 차단 성공으로 보고하지 않습니다.
+
+검사: `node --test test/brute-force-respond.test.mjs test/brute-force-decide.test.mjs test/xdr-run.test.mjs`로 16건이 통과했습니다. Jev 임계값·오류·시간 초과는 모의 검사이며 실제 Jev 응답 성공은 미확인입니다. 단계 5, Git origin·운영 주소, 로그인 발급자·audience·JWKS, 다섯 메모 허용 경로와 원본 `/rest/v1/notes` 주소를 구현과 대조했습니다. 공개 `/aleph.json`도 단계·저장소·허용 경로·원본 API·`judgeIssuer`가 설정과 일치했고 운영 식별 커밋은 `9d3f64aaa21cdd365acf25983c04a460ec06d9f9`였습니다. 설정과 `judgeIssuer`는 보존했습니다. `src/attack-check.mjs`의 기존 5단계 요청 점검과 미실행 표기를 보존하며 이번 로컬 XDR 결과를 운영 요청 결과로 넣지 않습니다. 새 배포·운영 인증 요청·심판 재판정·`npm run bundle`은 이번 저장점에서 미실행입니다. `bundle-notes.json`과 `artifacts/submission.json`은 커밋하지 않습니다.
+
 ## 5단계 저장점과 다시 실행
 
 심판의 `S05_ORIGINAL_URL_MISSING` 첫 오류 수정: 설정에 있던 `originalApiUrl`이 배포용 `public/aleph.json`에서 누락되어 생성 코드에 추가했습니다. 5단계 빌드는 쿼리·인증 정보 없는 HTTPS 경로를 검증하며, 자기 점검도 배포된 원본 주소가 설정과 일치해야 배포 식별 성공으로 기록합니다. 실제 재배포와 재제출 판정은 별도로 확인합니다.

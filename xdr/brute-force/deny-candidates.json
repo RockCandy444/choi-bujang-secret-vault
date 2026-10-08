@@ -1,0 +1,145 @@
+{
+  "schema": "aleph.xdr.deny-candidates.v1",
+  "rules": [
+    {
+      "ruleId": "xdr.brute_force.ad8b1e52bc6d1db9fe6b4ca271dbb99cffcfb552c632b48aed8bde73bb290f0d",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "631f08140b24b7274d12df3c37a1a80ce5876dafd7007d772e0114fddf88b682",
+      "alertIds": [
+        "bf-01"
+      ],
+      "createdAt": "2026-09-27T00:12:01.000Z",
+      "expiresAt": "2026-09-27T00:27:01.000Z",
+      "pattern": "같은 주소의 짧은 시간 연속 로그인 실패",
+      "status": "pending_verified_binding"
+    },
+    {
+      "ruleId": "xdr.brute_force.e95896514e9c8175967a6ac8c4556a168429c409ab876db323ab6368e3fabcdf",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "631f08140b24b7274d12df3c37a1a80ce5876dafd7007d772e0114fddf88b682",
+      "alertIds": [
+        "bf-02"
+      ],
+      "createdAt": "2026-09-27T00:12:40.000Z",
+      "expiresAt": "2026-09-27T00:27:40.000Z",
+      "pattern": "여러 계정에 같은 비밀번호 대입",
+      "status": "pending_verified_binding"
+    },
+    {
+      "ruleId": "xdr.brute_force.b181b04419ea765684681c01572d2431c8a93c80ee452ef66418d562a168178b",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "140cc81db30fc9c9e2c65d79fe98abcab9bd5e3b86e6fb77244705c51c51ff86",
+      "alertIds": [
+        "bf-03"
+      ],
+      "createdAt": "2026-09-27T00:14:02.000Z",
+      "expiresAt": "2026-09-27T00:29:02.000Z",
+      "pattern": "같은 주소의 짧은 시간 연속 로그인 실패",
+      "status": "pending_verified_binding"
+    },
+    {
+      "ruleId": "xdr.brute_force.b38841a22398f7cdf9a498a7ef6a5e43453b1e709419127aa540eb7fef3ead89",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "a0c2b533f88e9b435c7e5f9ca99ec967c722127ba057363cd73eb5a1bd669999",
+      "alertIds": [
+        "bf-04"
+      ],
+      "createdAt": "2026-09-27T00:20:11.000Z",
+      "expiresAt": "2026-09-27T00:35:11.000Z",
+      "pattern": "같은 주소의 짧은 시간 연속 로그인 실패",
+      "status": "pending_verified_binding"
+    },
+    {
+      "ruleId": "xdr.brute_force.007559ab7466de35cfa2590f05d17e2f110c7a06e04ccff00dec5ad041c49d25",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "9ec158a17a98fe09d94621f106c840c9c0cdfa1a6165eece8b9ee083028593d5",
+      "alertIds": [
+        "bf-05"
+      ],
+      "createdAt": "2026-09-27T00:21:00.000Z",
+      "expiresAt": "2026-09-27T00:36:00.000Z",
+      "pattern": "같은 주소의 짧은 시간 연속 로그인 실패",
+      "status": "pending_verified_binding"
+    },
+    {
+      "ruleId": "xdr.brute_force.772a1fbe71d22604ba2e34b12bd27d8a545fa1601b58cae574e063a7e7768d12",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "b39c5c787cf1c5b2d2b44fb0993eaab274e7e9cea5bb7996a3cdc68079880e43",
+      "alertIds": [
+        "bf-06"
+      ],
+      "createdAt": "2026-09-27T02:02:15.000Z",
+      "expiresAt": "2026-09-27T02:17:15.000Z",
+      "pattern": "같은 주소의 짧은 시간 연속 로그인 실패",
+      "status": "pending_verified_binding"
+    },
+    {
+      "ruleId": "xdr.brute_force.0e8569616b8011e7bab34cc9ce241e3e4ddd2cdac6fdcbc9ff3ba31790b3cfec",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "c74177bda5584327497095b3b8d074991950acead07b625bd368763408b65e7d",
+      "alertIds": [
+        "bf-07"
+      ],
+      "createdAt": "2026-09-27T02:05:40.000Z",
+      "expiresAt": "2026-09-27T02:20:40.000Z",
+      "pattern": "같은 주소의 짧은 시간 연속 로그인 실패",
+      "status": "pending_verified_binding"
+    },
+    {
+      "ruleId": "xdr.brute_force.54690304cea22edd33a1a8ab2df6814fcb2dd563ea65ef434a18ce181f346a6e",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "4b7d36a8e334799c9b46ce4b4778e9b3c7803d2c43c461e8edb936d543e4ecbb",
+      "alertIds": [
+        "bf-08"
+      ],
+      "createdAt": "2026-09-27T04:10:02.000Z",
+      "expiresAt": "2026-09-27T04:25:02.000Z",
+      "pattern": "같은 주소의 짧은 시간 연속 로그인 실패",
+      "status": "pending_verified_binding"
+    },
+    {
+      "ruleId": "xdr.brute_force.3630511cdb23a61f5fd78d9eeeab818dd61ac1a7d9c9982ae40fbd0e9209f6b2",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "c53bee22afaf61cffd4076a3632d42f24701139f4219567bec9533e3cdd628cc",
+      "alertIds": [
+        "bf-09"
+      ],
+      "createdAt": "2026-09-27T05:22:18.000Z",
+      "expiresAt": "2026-09-27T05:37:18.000Z",
+      "pattern": "여러 계정에 같은 비밀번호 대입",
+      "status": "pending_verified_binding"
+    },
+    {
+      "ruleId": "xdr.brute_force.7c136cc6cf1e2d786c976081c61c48a5d1b3ed91ef310eb0728ac43bc86f0eae",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "8e84592a1e015927dd92c269e3d11b4b81bcdc13956d2d563ea58af440648b88",
+      "alertIds": [
+        "bf-10"
+      ],
+      "createdAt": "2026-09-27T06:40:01.000Z",
+      "expiresAt": "2026-09-27T06:55:01.000Z",
+      "pattern": "같은 주소의 짧은 시간 연속 로그인 실패",
+      "status": "pending_verified_binding"
+    }
+  ]
+}

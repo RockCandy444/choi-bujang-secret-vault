@@ -41,6 +41,10 @@ export async function checkDecider({ decide, ruleIds }) {
   if (ruleIds.includes('resource_route')) {
     const query = 'action=export';
     checks.push(
+      { name: '자기 메모 목록 경로 허용', request: { ...normal,
+        path: '/api/my/notes', route: 'GET /api/my/notes' }, decision: 'allow' },
+      { name: '전체 메모 목록 경로 거부', request: { ...normal,
+        path: '/api/notes', route: 'GET /api/notes' }, decision: 'deny' },
       { name: '정확한 메모 수정 경로 (소유권은 API에서 검사)',
         request: { ...normal, method: 'PUT', route: 'PUT /notes/:id' }, decision: 'allow' },
       { name: 'ID와 같은 깊이의 export 경로 거부',

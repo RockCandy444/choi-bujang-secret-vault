@@ -7,7 +7,10 @@ import { join } from 'node:path';
 import { runAttackChecks } from '../src/attack-check.mjs';
 
 const root = new URL('../', import.meta.url);
-const config = { ...JSON.parse(await readFile(new URL('aleph.config.json', root), 'utf8')), step: 4 };
+const currentConfig = JSON.parse(await readFile(new URL('aleph.config.json', root), 'utf8'));
+const config = { ...currentConfig, step: 4, allowedRoutes: currentConfig.allowedRoutes
+  .filter(route => route !== 'GET /api/notices')
+  .map(route => route === 'GET /api/my/notes' ? 'GET /api/notes' : route) };
 
 test('stage 4 build removes stale notes and records stage 4 deployment identity', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'aleph-step4-'));

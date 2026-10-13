@@ -199,7 +199,7 @@
       notesController = new AbortController();
       showNotesStatus('가상 자료를 불러오는 중입니다.');
       try {
-        const response = await fetch('/api/notes', {
+        const response = await fetch('/api/my/notes', {
           cache: 'no-store', headers: { Authorization: `Bearer ${accessToken}` },
           signal: notesController.signal,
         });

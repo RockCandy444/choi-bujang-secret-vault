@@ -45,7 +45,7 @@ test('stage 8 self-check sends notice requests, catches leakage and leaves authe
         assert.equal(url.origin, new URL(config.publicAppUrl).origin);
         assert.equal(options.body, undefined);
         requests.push(url.pathname);
-        if (url.pathname.startsWith('/api/notes') || url.pathname === '/api/notices') {
+        if (url.pathname.startsWith('/api/notes') || url.pathname === '/api/my/notes' || url.pathname === '/api/notices') {
           assert.ok(!options.headers || options.headers.Authorization === 'Bearer invalid');
           const notice = url.pathname === '/api/notices';
           return new Response(JSON.stringify(notice && leaked
@@ -65,7 +65,7 @@ test('stage 8 self-check sends notice requests, catches leakage and leaves authe
       assert.equal(notice.observed.includes('점검 실패'), leaked);
       assert.ok(!JSON.stringify(results).includes('synthetic-private-response'));
       assert.equal(results.filter(item => item.observed.startsWith('미실행:')).length, 6);
-      assert.match(results.find(item => item.attackId === 'authenticated_a_b_crud').observed, /소유자 연결 미완료/u);
+      assert.match(results.find(item => item.attackId === 'authenticated_a_b_crud').observed, /미실행.*API의 자기 요청 유지/u);
       assert.match(results.find(item => item.attackId === 'student_notice_write_denied').observed, /미실행/u);
     }
   } finally { globalThis.fetch = originalFetch; }

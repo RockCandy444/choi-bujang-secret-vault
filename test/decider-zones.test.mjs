@@ -19,6 +19,20 @@ async function decision(input, expected) {
   return output;
 }
 
+test('official engine demo read is restored without opening unknown IDs or bypassing device/step-up rules', async () => {
+  const { normal, suspicious } = fixtureRequests();
+  assert.equal(normal.path, '/notes/demo');
+  await decision(normal, 'allow');
+  await decision(suspicious, 'step_up');
+  await decision({ ...suspicious, stepUp: { verified: true, authAgeSeconds: 60 } }, 'allow');
+  const unregistered = await decision({ ...normal, deviceRegistered: false }, 'deny');
+  assert.equal(unregistered.reasonCode, 'device_not_registered');
+  for (const path of ['/notes/export', '/notes/all', '/notes/unknown', '/api/notes/demo']) {
+    await decision({ ...normal, path }, 'deny');
+  }
+  await decision({ ...normal, route: 'GET /api/notes/:id' }, 'deny');
+});
+
 test('only exact GET and PUT note item routes pass the route gate; own list stays available', async () => {
   for (const method of ['GET', 'PUT']) {
     for (const prefix of ['/api/notes', '/notes']) {
@@ -27,8 +41,13 @@ test('only exact GET and PUT note item routes pass the route gate; own list stay
       }
     }
   }
-  await decision(request('GET', '/api/notes', 'GET /api/notes'), 'allow');
+  await decision(request('GET', '/api/my/notes', 'GET /api/my/notes'), 'allow');
+  await decision(request('GET', '/api/notes', 'GET /api/notes'), 'deny');
   await decision(request('PUT', '/api/notes', 'PUT /api/notes'), 'deny');
+  for (const [path, route] of [['/api/notes/all', 'GET /api/notes/all'],
+    ['/api/admin/notes', 'GET /api/admin/notes'], ['/api/my/notes/other', 'GET /api/my/notes/:id']]) {
+    await decision(request('GET', path, route), 'deny');
+  }
 });
 
 test('unknown paths, function names, encoding and mismatched method/route/service are denied', async () => {

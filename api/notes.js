@@ -14,9 +14,11 @@ export default async function handler(request, response) {
   response.setHeader('Vercel-CDN-Cache-Control', 'no-store');
   response.setHeader('Vary', 'Authorization');
   let id;
+  let ownList = false;
   try {
     const path = new URL(request.url || '/api/notes', 'https://route.invalid').pathname;
-    if (path !== '/api/notes' && path !== '/api/notes/') {
+    ownList = path === '/api/my/notes' || path === '/api/my/notes/';
+    if (path !== '/api/notes' && path !== '/api/notes/' && !ownList) {
       const match = /^\/api\/notes\/([^/]+)\/?$/u.exec(path);
       if (!match) return reject(404, 'NOT_FOUND');
       id = decodeURIComponent(match[1]);
@@ -26,7 +28,7 @@ export default async function handler(request, response) {
   } catch {
     return reject(400, 'INVALID_NOTE_ID');
   }
-  const methods = id ? ['GET', 'PUT', 'DELETE'] : ['GET', 'POST'];
+  const methods = ownList ? ['GET'] : id ? ['GET', 'PUT', 'DELETE'] : ['GET', 'POST'];
   if (!methods.includes(request.method)) {
     response.setHeader('Allow', methods.join(', '));
     return reject(405, 'METHOD_NOT_ALLOWED');

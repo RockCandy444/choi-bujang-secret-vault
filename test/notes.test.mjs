@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 import handler from '../api/notes.js';
 import itemHandler from '../api/notes/[id].js';
+import ownListHandler from '../api/my/notes.js';
 import noticesHandler from '../api/notices.js';
 
 const config = JSON.parse(await readFile(new URL('../aleph.config.json', import.meta.url), 'utf8'));
@@ -226,7 +227,7 @@ test('page makes no anonymous read, sends only the server-issued token, renders 
   const suppliedRows = rows.map(row => ({ ...row, title: `<img onerror=alert(1)>${row.title}` }));
   const page = await mountPage(async (path, options) => {
     requests++;
-    assert.equal(path, '/api/notes');
+    assert.equal(path, '/api/my/notes');
     assert.equal(options.cache, 'no-store');
     assert.deepEqual(Object.keys(options.headers), ['Authorization']);
     assert.ok(options.headers.Authorization === `Bearer ${token}`);
@@ -337,7 +338,7 @@ test('A creates, lists, reads, updates and deletes UUID notes with server-assign
     assert.equal((await send('DELETE', `/api/notes/${id}`)).code, 404);
     assert.ok(operations.filter(op => op.method !== 'POST').every(op => op.owner === subject));
     for (const row of rows) assert.deepEqual(store.get(row.id), { ...row, owner_id: null });
-    assert.deepEqual(config.allowedRoutes, ['GET /api/notes', 'POST /api/notes',
+    assert.deepEqual(config.allowedRoutes, ['GET /api/my/notes', 'POST /api/notes',
       'GET /api/notes/:id', 'PUT /api/notes/:id', 'DELETE /api/notes/:id', 'GET /api/notices']);
   });
 });
@@ -567,6 +568,34 @@ test('notices refuse writes and unknown paths without accessing external service
     const response = responseCapture();
     await noticesHandler({ method: 'GET', url: '/api/notices/unknown', headers: {} }, response);
     assert.equal(response.code, 404);
+  });
+});
+
+test('private list alias preserves own notes, hides foreign notes and rejects writes and anonymous requests', async () => {
+  await configured(async () => {
+    const { store, operations } = mockDatabase();
+    store.get(rows[0].id).owner_id = subject;
+    store.get(rows[1].id).owner_id = randomUUID();
+    const before = structuredClone([...store]);
+    const response = responseCapture();
+    await ownListHandler({ method: 'GET', url: '/api/my/notes?owner_id=forged',
+      headers: { authorization: await authorization() },
+      body: { userId: store.get(rows[1].id).owner_id, role: 'instructor' } }, response);
+    assert.equal(response.code, 200);
+    assert.deepEqual(response.body.map(note => note.id), [rows[0].id]);
+    assert.ok(operations.every(operation => operation.owner === subject));
+    assert.equal(response.headers['x-aleph-resource-id'], 'notes');
+    for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
+      const rejected = responseCapture();
+      await ownListHandler({ method, url: '/api/my/notes', headers: {} }, rejected);
+      assert.equal(rejected.code, 405);
+      assert.equal(rejected.headers.allow, 'GET');
+    }
+    const anonymous = responseCapture();
+    await ownListHandler({ method: 'GET', url: '/api/my/notes', headers: {} }, anonymous);
+    assert.equal(anonymous.code, 401);
+    assert.deepEqual(anonymous.body, { error: 'LOGIN_REQUIRED' });
+    assert.deepEqual([...store], before);
   });
 });
 

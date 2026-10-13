@@ -42,7 +42,7 @@ export async function runAttackChecks(config) {
         : `정적 목록 점검 실패 (HTTP ${response.status})` }];
     // No credentials or note payloads. A random missing ID avoids touching saved notes.
     const id = randomUUID();
-    const routes = [['GET', '/api/notes', 'list'], ['POST', '/api/notes', 'create'],
+    const routes = [['GET', config.step === 8 ? '/api/my/notes' : '/api/notes', 'list'], ['POST', '/api/notes', 'create'],
       ['GET', `/api/notes/${id}`, 'item'], ['PUT', `/api/notes/${id}`, 'update'],
       ['DELETE', `/api/notes/${id}`, 'delete']];
     for (const invalid of [false, true]) {
@@ -98,11 +98,11 @@ export async function runAttackChecks(config) {
     results.push({ attackId: config.step === 8 ? 'authenticated_a_b_crud' : 'authenticated_a_crud',
       expected: config.step === 7
         ? '운영 A 정상 CRUD; 복합 사건의 같은 주체 새 로그인 전 자료 차단·새 요청 재판정 허용'
-        : config.step === 8 ? '운영 A/B 자기 메모 CRUD 허용 및 판정기 소유권 구분'
+        : config.step === 8 ? '운영 A/B 자기 메모 CRUD 허용 및 API의 상대 메모 거부'
           : '운영 A 로그인으로 추가·조회·수정·삭제 후 GET 404',
       observed: config.step === 7
         ? '미실행: 운영 A 인증 요청 없음; 같은 주체의 새 로그인 시각 검증 계약·자료 차단 연결 미확인'
-        : config.step === 8 ? '미실행: 운영 A/B 인증 요청 없음; 판정기 주체·소유자 연결 미완료'
+        : config.step === 8 ? '미실행: 운영 A/B 인증 요청 없음; API의 자기 요청 유지·상대 접근 거부는 별도 확인 필요'
           : '미실행: 자동 점검은 로그인 비밀값을 사용하지 않음; 운영 A 화면에서 별도 확인 필요' });
     if (config.step >= 4) {
       // Local reports belong in README, not in this deployment request run.

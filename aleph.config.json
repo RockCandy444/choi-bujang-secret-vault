@@ -9,7 +9,7 @@
     "jwksUrl": "https://buddejtjdpwxgthvfpnu.supabase.co/auth/v1/.well-known/jwks.json"
   },
   "allowedRoutes": [
-    "GET /api/notes",
+    "GET /api/my/notes",
     "POST /api/notes",
     "GET /api/notes/:id",
     "PUT /api/notes/:id",

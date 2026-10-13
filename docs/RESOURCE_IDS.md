@@ -6,6 +6,7 @@
 | 기존/새 경로 | 자원 ID | 개별 자료 ID |
 |---|---|---|
 | 기존 `/api/notes`, `/api/notes/:id` | `notes` | 기존 메모 UUID 보존 |
+| 심판 오류 수정의 `/api/my/notes` | `notes` | 기존 자기 메모 UUID 보존 |
 | 새 `/api/notices` | `instructor_notices` | 현재 빈 목록이므로 없음 |
 
 메모의 응답 JSON·CRUD·주소·소유자 검사는 유지합니다. 공지는 기존 로그인
@@ -19,7 +20,9 @@
 못합니다. 이 ID는 자원 종류이며 사용자 역할이나 접근 허가가 아닙니다.
 판정기 계약에 새 필드를 추가하지 않았습니다. 뒤이어 추가한 경로별
 판정 규칙과 소유권·강사 권한 연결의 한계는 [ZONE_RULES.md](ZONE_RULES.md)에
-기록했습니다. 운영 허용 경로는 변경하지 않았습니다.
+기록했습니다. 심판 오류 수정에서는 릴레이의 목록 허용 경로를
+`GET /api/notes`에서 `GET /api/my/notes`로 바꿨습니다. 이전 서버 API는
+호환을 위해 보존합니다.
 
 로컬 검사: `node --test test/notes.test.mjs`.
 앱 실행: `.\local-only\start-dev.cmd`.

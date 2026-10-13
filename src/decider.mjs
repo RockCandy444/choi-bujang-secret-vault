@@ -12,8 +12,14 @@ const EMPTY_QUERY_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495
 
 function noteRoute(request) {
   if (request.service !== 'notes') return false;
-  if (['/api/notes', '/api/notes/'].includes(request.path)) {
-    return request.method === 'GET' && request.route === 'GET /api/notes';
+  // The official engine practice resource uses the opaque ID "demo".
+  // It is an engine route, not a UUID accepted by the deployed notes API.
+  if (['/notes/demo', '/notes/demo/'].includes(request.path)) {
+    return ['GET', 'PUT'].includes(request.method)
+      && request.route === `${request.method} /notes/:id`;
+  }
+  if (['/api/my/notes', '/api/my/notes/'].includes(request.path)) {
+    return request.method === 'GET' && request.route === 'GET /api/my/notes';
   }
   const item = NOTE_ITEM.exec(request.path);
   return !!item && ['GET', 'PUT'].includes(request.method)

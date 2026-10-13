@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 
 export async function runAttackChecks(config) {
-  if (![1, 2, 3, 4, 5, 6].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3, 4, 5, 6, 7].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -35,7 +35,7 @@ export async function runAttackChecks(config) {
       // A non-JSON response is a failed check, not a successful deployment.
     }
   }
-  if ([3, 4, 5, 6].includes(config.step)) {
+  if ([3, 4, 5, 6, 7].includes(config.step)) {
     const results = [{ attackId: 'anonymous_static_note_read',
       expected: '정적 JSON은 HTTP 200의 빈 메모 목록',
       observed: response.status === 200 && empty ? 'HTTP 200: 정적 메모 0건'
@@ -96,8 +96,12 @@ export async function runAttackChecks(config) {
       observed: failures.length ? `정적 표시 점검 실패: ${failures.join(', ')}`
         : `정적 응답 네 경로 HTTP 200; 1단계 확인 표시 없음${config.step >= 5 ? '; 보안 헤더 확인; 화면 공개 키 없음' : ''}` });
     results.push({ attackId: 'authenticated_a_crud',
-      expected: '운영 A 로그인으로 추가·조회·수정·삭제 후 GET 404',
-      observed: '미실행: 자동 점검은 로그인 비밀값을 사용하지 않음; 운영 A 화면에서 별도 확인 필요' });
+      expected: config.step === 7
+        ? '운영 A 정상 CRUD; 복합 사건의 같은 주체 새 로그인 전 자료 차단·새 요청 재판정 허용'
+        : '운영 A 로그인으로 추가·조회·수정·삭제 후 GET 404',
+      observed: config.step === 7
+        ? '미실행: 운영 A 인증 요청 없음; 같은 주체의 새 로그인 시각 검증 계약·자료 차단 연결 미확인'
+        : '미실행: 자동 점검은 로그인 비밀값을 사용하지 않음; 운영 A 화면에서 별도 확인 필요' });
     if (config.step >= 4) {
       // Local reports belong in README, not in this deployment request run.
       for (const [attackId, expected] of [

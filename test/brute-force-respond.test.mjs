@@ -105,17 +105,20 @@ test('미래 사건·부족한 식별자·비밀처럼 보이는 필드는 활�
   });
 });
 
-test('기존 ZTNA 규칙·다섯 응답 항목을 보존하며 정상 통과를 주장하지 않는다', async () => {
+test('XDR 대응은 기존 ZTNA 규칙·판정·다섯 응답 항목을 보존한다', async () => {
   await isolated(async root => {
     const sourceUrl = new URL('../src/decider.mjs', import.meta.url);
     const original = await readFile(sourceUrl);
     const { normal } = fixtureRequests();
     const before = await ztnaDecide(normal);
+    const originalRules = [...RULE_IDS];
+    const unregistered = { ...normal, deviceRegistered: false };
+    const deniedBefore = await ztnaDecide(unregistered);
     await respond(alerts, { root, now });
     const after = await ztnaDecide(normal);
     assert.deepEqual(after, before);
-    assert.equal(after.decision, 'deny');
-    assert.deepEqual(RULE_IDS, ['starter.deny']);
+    assert.deepEqual(await ztnaDecide(unregistered), deniedBefore);
+    assert.deepEqual(RULE_IDS, originalRules);
     assert.deepEqual(Object.keys(after).sort(), ['decision', 'reasonCode', 'requestId', 'ruleIds', 'schema']);
     assert.ok(original.equals(await readFile(sourceUrl)));
   });

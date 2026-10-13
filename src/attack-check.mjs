@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 
 export async function runAttackChecks(config) {
-  if (![1, 2, 3, 4, 5].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3, 4, 5, 6].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -35,7 +35,7 @@ export async function runAttackChecks(config) {
       // A non-JSON response is a failed check, not a successful deployment.
     }
   }
-  if ([3, 4, 5].includes(config.step)) {
+  if ([3, 4, 5, 6].includes(config.step)) {
     const results = [{ attackId: 'anonymous_static_note_read',
       expected: '정적 JSON은 HTTP 200의 빈 메모 목록',
       observed: response.status === 200 && empty ? 'HTTP 200: 정적 메모 0건'
@@ -69,11 +69,11 @@ export async function runAttackChecks(config) {
         signal: AbortSignal.timeout(10000), headers: { 'Cache-Control': 'no-cache' } });
       const text = await checked.text();
       if (checked.status !== 200 || text.includes('SAMPLE_NOTE_1')) failures.push(path);
-      if (config.step === 5 && ['/', '/index.html'].includes(path)
+      if (config.step >= 5 && ['/', '/index.html'].includes(path)
           && /\bsb_publishable_[A-Za-z0-9_-]+|\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/u.test(text)) {
         failures.push(`${path}: 화면 공개 키`);
       }
-      if (config.step === 5 && path === '/'
+      if (config.step >= 5 && path === '/'
           && checked.headers.get('x-content-type-options') !== 'nosniff'
           && !checked.headers.get('content-security-policy')) failures.push('/: 보안 헤더');
       if (path === '/aleph.json') {
@@ -92,9 +92,9 @@ export async function runAttackChecks(config) {
       }
     }
     results.push({ attackId: 'static_stage1_marker_absent',
-      expected: `정적 응답 네 경로에 1단계 확인 표시가 없음${config.step === 5 ? '; 첫 화면 보안 헤더 및 화면 공개 키 없음' : ''}`,
+      expected: `정적 응답 네 경로에 1단계 확인 표시가 없음${config.step >= 5 ? '; 첫 화면 보안 헤더 및 화면 공개 키 없음' : ''}`,
       observed: failures.length ? `정적 표시 점검 실패: ${failures.join(', ')}`
-        : `정적 응답 네 경로 HTTP 200; 1단계 확인 표시 없음${config.step === 5 ? '; 보안 헤더 확인; 화면 공개 키 없음' : ''}` });
+        : `정적 응답 네 경로 HTTP 200; 1단계 확인 표시 없음${config.step >= 5 ? '; 보안 헤더 확인; 화면 공개 키 없음' : ''}` });
     results.push({ attackId: 'authenticated_a_crud',
       expected: '운영 A 로그인으로 추가·조회·수정·삭제 후 GET 404',
       observed: '미실행: 자동 점검은 로그인 비밀값을 사용하지 않음; 운영 A 화면에서 별도 확인 필요' });
@@ -110,7 +110,7 @@ export async function runAttackChecks(config) {
           observed: '미실행: 운영 A/B 인증 요청을 보내지 않음; 로컬 검사 결과와 별도 확인 필요' });
       }
     }
-    if (config.step === 5) {
+    if (config.step >= 5) {
       results.push({ attackId: 'original_api_anon_denied',
         expected: '원본 자료 API의 anon 키 직접 요청은 메모 자료 없이 거부',
         observed: '미실행: 원본 API에 anon 키 요청을 보내지 않음; 심판 확인 항목' });

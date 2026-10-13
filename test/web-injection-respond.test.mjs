@@ -168,17 +168,20 @@ test('오염된 후보 파일은 덮어쓰거나 로그에 원문을 출력하�
   });
 });
 
-test('판단 모듈·원본 경보·기존 ZTNA를 보존하고 정상 요청 통과를 주장하지 않는다', async () => {
+test('XDR 대응은 판단 모듈·원본 경보·기존 ZTNA 규칙과 판정을 보존한다', async () => {
   await isolated(async root => {
     const urls = ['../src/decider.mjs', '../xdr/web-injection/decide.mjs', '../xdr/fixtures/web-injection.json']
       .map(path => new URL(path, import.meta.url));
     const original = await Promise.all(urls.map(url => readFile(url)));
     const { normal: request } = fixtureRequests();
     const before = await ztnaDecide(request);
+    const originalRules = [...RULE_IDS];
+    const unregistered = { ...request, deviceRegistered: false };
+    const deniedBefore = await ztnaDecide(unregistered);
     await respond(alerts, { root, now });
     assert.deepEqual(await ztnaDecide(request), before);
-    assert.equal(before.decision, 'deny');
-    assert.deepEqual(RULE_IDS, ['starter.deny']);
+    assert.deepEqual(await ztnaDecide(unregistered), deniedBefore);
+    assert.deepEqual(RULE_IDS, originalRules);
     for (const [index, url] of urls.entries()) assert.ok(original[index].equals(await readFile(url)));
   });
 });

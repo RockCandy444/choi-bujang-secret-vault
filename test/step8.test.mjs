@@ -7,7 +7,7 @@ import { join, resolve, sep } from 'node:path';
 import { runAttackChecks } from '../src/attack-check.mjs';
 
 const root = new URL('../', import.meta.url);
-const config = JSON.parse(await readFile(new URL('aleph.config.json', root), 'utf8'));
+const config = { ...JSON.parse(await readFile(new URL('aleph.config.json', root), 'utf8')), step: 8 };
 
 test('stage 8 isolated build keeps notes empty, emits current routes and preserves judge issuer', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'aleph-step8-'));
@@ -15,6 +15,7 @@ test('stage 8 isolated build keeps notes empty, emits current routes and preserv
     for (const path of ['scripts', 'aleph.config.json']) {
       await cp(new URL(path, root), join(directory, path), { recursive: true });
     }
+    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify(config));
     execFileSync(process.execPath, ['scripts/build-public.mjs'], { cwd: directory,
       windowsHide: true, stdio: 'pipe', env: { ...process.env, VERCEL_GIT_PROVIDER: 'github',
         VERCEL_GIT_REPO_OWNER: 'RockCandy444', VERCEL_GIT_REPO_SLUG: 'choi-bujang-secret-vault',
@@ -26,7 +27,7 @@ test('stage 8 isolated build keeps notes empty, emits current routes and preserv
     assert.deepEqual(identity.allowedRoutes, config.allowedRoutes);
     assert.ok(identity.allowedRoutes.includes('GET /api/notices'));
     assert.equal(identity.judgeIssuer, config.judgeIssuer);
-    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify({ ...config, step: 9 }));
+    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify({ ...config, step: 10 }));
     assert.throws(() => execFileSync(process.execPath, ['scripts/build-public.mjs', '--local'],
       { cwd: directory, windowsHide: true, stdio: 'pipe' }));
   } finally {

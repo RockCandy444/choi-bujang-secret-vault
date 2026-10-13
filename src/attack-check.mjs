@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 
 export async function runAttackChecks(config) {
-  if (![1, 2, 3, 4, 5, 6, 7, 8].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -35,14 +35,14 @@ export async function runAttackChecks(config) {
       // A non-JSON response is a failed check, not a successful deployment.
     }
   }
-  if ([3, 4, 5, 6, 7, 8].includes(config.step)) {
+  if ([3, 4, 5, 6, 7, 8, 9].includes(config.step)) {
     const results = [{ attackId: 'anonymous_static_note_read',
       expected: '정적 JSON은 HTTP 200의 빈 메모 목록',
       observed: response.status === 200 && empty ? 'HTTP 200: 정적 메모 0건'
         : `정적 목록 점검 실패 (HTTP ${response.status})` }];
     // No credentials or note payloads. A random missing ID avoids touching saved notes.
     const id = randomUUID();
-    const routes = [['GET', config.step === 8 ? '/api/my/notes' : '/api/notes', 'list'], ['POST', '/api/notes', 'create'],
+    const routes = [['GET', config.step >= 8 ? '/api/my/notes' : '/api/notes', 'list'], ['POST', '/api/notes', 'create'],
       ['GET', `/api/notes/${id}`, 'item'], ['PUT', `/api/notes/${id}`, 'update'],
       ['DELETE', `/api/notes/${id}`, 'delete']];
     for (const invalid of [false, true]) {
@@ -95,14 +95,14 @@ export async function runAttackChecks(config) {
       expected: `정적 응답 네 경로에 1단계 확인 표시가 없음${config.step >= 5 ? '; 첫 화면 보안 헤더 및 화면 공개 키 없음' : ''}`,
       observed: failures.length ? `정적 표시 점검 실패: ${failures.join(', ')}`
         : `정적 응답 네 경로 HTTP 200; 1단계 확인 표시 없음${config.step >= 5 ? '; 보안 헤더 확인; 화면 공개 키 없음' : ''}` });
-    results.push({ attackId: config.step === 8 ? 'authenticated_a_b_crud' : 'authenticated_a_crud',
+    results.push({ attackId: config.step >= 8 ? 'authenticated_a_b_crud' : 'authenticated_a_crud',
       expected: config.step === 7
         ? '운영 A 정상 CRUD; 복합 사건의 같은 주체 새 로그인 전 자료 차단·새 요청 재판정 허용'
-        : config.step === 8 ? '운영 A/B 자기 메모 CRUD 허용 및 API의 상대 메모 거부'
+        : config.step >= 8 ? '운영 A/B 자기 메모 CRUD 허용 및 API의 상대 메모 거부'
           : '운영 A 로그인으로 추가·조회·수정·삭제 후 GET 404',
       observed: config.step === 7
         ? '미실행: 운영 A 인증 요청 없음; 같은 주체의 새 로그인 시각 검증 계약·자료 차단 연결 미확인'
-        : config.step === 8 ? '미실행: 운영 A/B 인증 요청 없음; API의 자기 요청 유지·상대 접근 거부는 별도 확인 필요'
+        : config.step >= 8 ? '미실행: 운영 A/B 인증 요청 없음; API의 자기 요청 유지·상대 접근 거부는 별도 확인 필요'
           : '미실행: 자동 점검은 로그인 비밀값을 사용하지 않음; 운영 A 화면에서 별도 확인 필요' });
     if (config.step >= 4) {
       // Local reports belong in README, not in this deployment request run.
@@ -111,12 +111,12 @@ export async function runAttackChecks(config) {
         ['foreign_note_access_denied', '운영 A/B의 상대 메모 GET·PUT·DELETE는 HTTP 404로 거부'],
         ['owner_change_denied', '운영 A/B의 owner_id 변경 PUT은 HTTP 400으로 거부'],
         ['owner_notes_preserved', '운영 상대 접근 검사 뒤 A/B 메모의 내용과 소유자 보존'],
-      ].filter(([attackId]) => config.step !== 8 || attackId !== 'authenticated_b_crud')) {
+      ].filter(([attackId]) => config.step < 8 || attackId !== 'authenticated_b_crud')) {
         results.push({ attackId, expected,
           observed: '미실행: 운영 A/B 인증 요청을 보내지 않음; 로컬 검사 결과와 별도 확인 필요' });
       }
     }
-    if (config.step >= 5 && config.step !== 8) {
+    if (config.step >= 5 && config.step < 8) {
       results.push({ attackId: 'original_api_anon_denied',
         expected: '원본 자료 API의 anon 키 직접 요청은 메모 자료 없이 거부',
         observed: '미실행: 원본 API에 anon 키 요청을 보내지 않음; 심판 확인 항목' });
@@ -124,7 +124,7 @@ export async function runAttackChecks(config) {
         expected: 'public.notes의 PUBLIC·anon·authenticated 권한 없음; 서버 CRUD 유지',
         observed: '미실행: 학습 DB SQL 적용·전후 권한과 적용 후 A 화면 결과 미확인' });
     }
-    if (config.step === 8) {
+    if (config.step >= 8) {
       results.push({ attackId: 'original_api_and_privileges_unrun',
         expected: '원본 anon 키 접근 거부와 학습 DB 권한 회수 확인',
         observed: '미실행: 원본 anon 키 요청·학습 DB 권한 검사를 실행하지 않음' });

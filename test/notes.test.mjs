@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 import handler from '../api/notes.js';
 import itemHandler from '../api/notes/[id].js';
+import noticesHandler from '../api/notices.js';
 
 const config = JSON.parse(await readFile(new URL('../aleph.config.json', import.meta.url), 'utf8'));
 // Synthetic credentials exist only in test memory; no real accounts or keys.
@@ -19,7 +20,7 @@ async function authorization(overrides = {}, privateKey = signingKeys.privateKey
     iat: now, exp: now + 300, ...overrides }).setProtectedHeader({ alg: 'ES256', kid }).sign(privateKey)}`;
 }
 
-function mockUpstream(notesResponse) {
+function mockUpstream(notesResponse, adminResponse) {
   globalThis.fetch = async (input, options) => {
     const url = new URL(input);
     if (url.href === config.identityProvider.jwksUrl) {
@@ -30,6 +31,9 @@ function mockUpstream(notesResponse) {
       return new Response(JSON.stringify({ code: 'bad_jwt', msg: 'Rejected' }), { status: 401 });
     }
     assert.equal(url.origin, new URL(config.identityProvider.issuer).origin);
+    if (adminResponse && url.pathname.startsWith('/auth/v1/admin/users/')) {
+      return adminResponse(url, options);
+    }
     assert.equal(url.pathname, '/rest/v1/notes');
     return notesResponse(url, options);
   };
@@ -52,10 +56,13 @@ async function configured(work) {
   const originalFetch = globalThis.fetch;
   const originalUrl = process.env.SUPABASE_URL;
   const originalKey = process.env.SUPABASE_SECRET_KEY;
+  const originalWarn = console.warn;
+  console.warn = () => {};
   process.env.SUPABASE_URL = new URL(config.identityProvider.issuer).origin;
   process.env.SUPABASE_SECRET_KEY = key;
   try { await work(); }
   finally {
+    console.warn = originalWarn;
     globalThis.fetch = originalFetch;
     if (originalUrl === undefined) delete process.env.SUPABASE_URL;
     else process.env.SUPABASE_URL = originalUrl;
@@ -85,6 +92,7 @@ test('verified A GET reads four DB notes with a server-only apikey and strips ex
     assert.equal(response.code, 200);
     assert.deepEqual(response.body, rows.map(({ id, title, content }) => ({ id, title, body: content })));
     assert.equal(response.headers['cache-control'], 'no-store');
+    assert.equal(response.headers['x-aleph-resource-id'], 'notes');
     assert.equal(response.headers['vercel-cdn-cache-control'], 'no-store');
     assert.ok(!JSON.stringify(response).includes(key));
   });
@@ -135,7 +143,10 @@ test('upstream errors, malformed data, and unexpected credential content are nev
         assert.deepEqual(response.body, { error: 'NOTES_UNAVAILABLE' });
         assert.ok(!JSON.stringify(response).includes(key));
       }
-      assert.deepEqual(logs, []);
+      assert.deepEqual(logs.map(args => JSON.parse(args[0])), Array(5).fill({
+        event: 'api_denied', resourceId: 'notes', reason: 'NOTES_UNAVAILABLE',
+      }));
+      assert.ok(!JSON.stringify(logs).includes(key));
     } finally { Object.assign(console, savedConsole); }
   });
 });
@@ -327,7 +338,7 @@ test('A creates, lists, reads, updates and deletes UUID notes with server-assign
     assert.ok(operations.filter(op => op.method !== 'POST').every(op => op.owner === subject));
     for (const row of rows) assert.deepEqual(store.get(row.id), { ...row, owner_id: null });
     assert.deepEqual(config.allowedRoutes, ['GET /api/notes', 'POST /api/notes',
-      'GET /api/notes/:id', 'PUT /api/notes/:id', 'DELETE /api/notes/:id']);
+      'GET /api/notes/:id', 'PUT /api/notes/:id', 'DELETE /api/notes/:id', 'GET /api/notices']);
   });
 });
 
@@ -501,6 +512,163 @@ test('A can create, edit and delete through the browser UI while remaining logge
     assert.match(get('notes').children[0].textContent, /등록된 가상 메모가 없습니다/u);
     assert.equal(get('login-form').hidden, true);
     assert.equal(get('note-editor').hidden, false);
+  });
+});
+
+test('resource IDs cannot be replaced by client input, including on rejected CRUD requests', async () => {
+  const id = randomUUID();
+  for (const [method, url, handle] of [
+    ['GET', '/api/notes', handler], ['POST', '/api/notes', handler],
+    ['GET', `/api/notes/${id}`, itemHandler], ['PUT', `/api/notes/${id}`, itemHandler],
+    ['DELETE', `/api/notes/${id}`, itemHandler], ['GET', '/api/notices', noticesHandler],
+  ]) {
+    const expected = url === '/api/notices' ? 'instructor_notices' : 'notes';
+    const forged = expected === 'notes' ? 'instructor_notices' : 'notes';
+    const response = responseCapture();
+    await handle({ method, url: `${url}?resourceId=${forged}`,
+      headers: { 'x-aleph-resource-id': forged }, query: { resourceId: forged },
+      body: { resourceId: forged } }, response);
+    assert.equal(response.code, 401);
+    assert.deepEqual(response.body, { error: 'LOGIN_REQUIRED' });
+    assert.equal(response.headers['x-aleph-resource-id'], expected);
+  }
+});
+
+test('authenticated notices GET returns an empty independent resource without touching notes DB', async () => {
+  await configured(async () => {
+    mockUpstream(() => { throw new Error('Notice request must not access the notes DB'); });
+    const response = responseCapture();
+    await noticesHandler({ method: 'GET', url: '/api/notices',
+      headers: { authorization: await authorization() } }, response);
+    assert.equal(response.code, 200);
+    assert.deepEqual(response.body, []);
+    assert.equal(response.headers['x-aleph-resource-id'], 'instructor_notices');
+    assert.equal(response.headers['cache-control'], 'no-store');
+
+    const invalid = responseCapture();
+    await noticesHandler({ method: 'GET', url: '/api/notices',
+      headers: { authorization: 'Bearer invalid' } }, invalid);
+    assert.equal(invalid.code, 401);
+    assert.deepEqual(invalid.body, { error: 'LOGIN_REQUIRED' });
+    assert.equal(invalid.headers['x-aleph-resource-id'], 'instructor_notices');
+  });
+});
+
+test('notices refuse writes and unknown paths without accessing external services', async () => {
+  await configured(async () => {
+    globalThis.fetch = async () => { throw new Error('Must not fetch'); };
+    for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
+      const response = responseCapture();
+      await noticesHandler({ method, url: '/api/notices', headers: {} }, response);
+      assert.equal(response.code, 401);
+      assert.deepEqual(response.body, { error: 'LOGIN_REQUIRED' });
+      assert.equal(response.headers['x-aleph-resource-id'], 'instructor_notices');
+    }
+    const response = responseCapture();
+    await noticesHandler({ method: 'GET', url: '/api/notices/unknown', headers: {} }, response);
+    assert.equal(response.code, 404);
+  });
+});
+
+test('direct foreign note requests with a forged instructor role disclose no data and log only short codes', async () => {
+  await configured(async () => {
+    const { store } = mockDatabase();
+    const id = rows[0].id;
+    store.get(id).owner_id = subject;
+    const before = structuredClone(store.get(id));
+    const caller = randomUUID();
+    const bearer = await authorization({ sub: caller });
+    const logs = [];
+    const originalWarn = console.warn;
+    console.warn = value => logs.push(JSON.parse(value));
+    try {
+      for (const method of ['GET', 'PUT', 'DELETE']) {
+        const response = responseCapture();
+        await itemHandler({ method, url: `/api/notes/${id}`, headers: {
+          authorization: bearer, 'x-role': 'instructor', 'x-user-id': subject,
+          'x-aleph-resource-id': 'instructor_notices' },
+        body: { title: 'Must not change', body: 'Must not change', role: 'instructor', userId: subject } }, response);
+        assert.equal(response.code, 404);
+        assert.deepEqual(response.body, { error: 'NOTE_NOT_FOUND' });
+        assert.deepEqual(store.get(id), before);
+      }
+      assert.deepEqual(logs, Array(3).fill({
+        event: 'api_denied', resourceId: 'notes', reason: 'NOTE_NOT_FOUND',
+      }));
+      assert.ok(!JSON.stringify(logs).includes(id));
+      assert.ok(!JSON.stringify(logs).includes(caller));
+    } finally { console.warn = originalWarn; }
+  });
+});
+
+test('notice write permission is read from current stored app metadata, never client roles or stale claims', async () => {
+  await configured(async () => {
+    let permissions = [];
+    let reads = 0;
+    mockUpstream(() => { throw new Error('Must not access notes DB'); }, (url, options) => {
+      assert.equal(url.pathname, `/auth/v1/admin/users/${subject}`);
+      assert.equal(options.method, 'GET');
+      assert.equal(options.body, undefined);
+      assert.equal(options.redirect, 'error');
+      assert.equal(options.cache, 'no-store');
+      reads++;
+      return new Response(JSON.stringify({ user: { id: subject,
+        app_metadata: { aleph_permissions: permissions },
+        user_metadata: { role: 'instructor', aleph_permissions: ['instructor_notices.write'] } } }));
+    });
+    const bearer = await authorization({ app_metadata: { aleph_permissions: ['instructor_notices.write'] } });
+    async function send() {
+      const response = responseCapture();
+      await noticesHandler({ method: 'PUT', url: '/api/notices', headers: {
+        authorization: bearer, 'x-role': 'instructor' },
+      body: { role: 'instructor', userId: randomUUID(), aleph_permissions: ['instructor_notices.write'] } }, response);
+      return response;
+    }
+    const missing = await send();
+    assert.equal(missing.code, 403);
+    assert.deepEqual(missing.body, { error: 'NOTICE_WRITE_NOT_ALLOWED' });
+    permissions = ['instructor_notices.write'];
+    const granted = await send();
+    assert.equal(granted.code, 405); // Permission alone does not implement storage.
+    assert.deepEqual(granted.body, { error: 'METHOD_NOT_ALLOWED' });
+    assert.equal(granted.headers.allow, 'GET');
+    permissions = []; // Revocation takes effect without changing the signed token.
+    assert.equal((await send()).code, 403);
+    assert.equal(reads, 3);
+  });
+});
+
+test('notice authority lookup failures and mismatched stored users fail closed without leaking upstream data', async () => {
+  await configured(async () => {
+    const bearer = await authorization();
+    const saved = { log: console.log, error: console.error, warn: console.warn };
+    const logs = [];
+    for (const method of Object.keys(saved)) console[method] = (...args) => logs.push(args);
+    try {
+      for (const [upstream, status, reason] of [
+        [() => new Response(JSON.stringify({ msg: key }), { status: 503 }), 503, 'NOTICE_PERMISSION_UNAVAILABLE'],
+        [() => { throw new Error(key); }, 503, 'NOTICE_PERMISSION_UNAVAILABLE'],
+        [() => new Response(JSON.stringify({ user: { id: randomUUID(),
+          app_metadata: { aleph_permissions: ['instructor_notices.write'] } } })), 403, 'NOTICE_WRITE_NOT_ALLOWED'],
+        [() => new Response(JSON.stringify({ user: { id: subject,
+          app_metadata: { aleph_permissions: 'instructor_notices.write' } } })), 403, 'NOTICE_WRITE_NOT_ALLOWED'],
+      ]) {
+        mockUpstream(() => { throw new Error('Must not access notes DB'); }, upstream);
+        const response = responseCapture();
+        await noticesHandler({ method: 'PUT', url: '/api/notices',
+          headers: { authorization: bearer }, body: { role: 'instructor' } }, response);
+        assert.equal(response.code, status);
+        assert.deepEqual(response.body, { error: reason });
+      }
+      assert.equal(logs.length, 4);
+      assert.ok(logs.every(args => {
+        const entry = JSON.parse(args[0]);
+        return args.length === 1 && Object.keys(entry).sort().join(',') === 'event,reason,resourceId'
+          && entry.event === 'api_denied' && entry.resourceId === 'instructor_notices';
+      }));
+      assert.ok(!JSON.stringify(logs).includes(key));
+      assert.ok(!JSON.stringify(logs).includes(subject));
+    } finally { Object.assign(console, saved); }
   });
 });
 

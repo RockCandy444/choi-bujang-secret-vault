@@ -23,7 +23,8 @@ test('normal engine simulation and unavailable signals preserve device decisions
   assert.equal(unregistered.decision, 'deny');
   assert.equal(unregistered.reasonCode, 'device_not_registered');
   assert.equal((await decide({ ...normal, method: 'POST' })).decision, 'deny');
-  assert.deepEqual(RULE_IDS, ['starter.deny', 'device_registered', 'step_up_required']);
+  assert.deepEqual(RULE_IDS, ['starter.deny', 'device_registered', 'step_up_required',
+    'resource_route', 'notes_read_write', 'notices_write_denied']);
 });
 
 test('forged client headers cannot become engine connection signals', async () => {

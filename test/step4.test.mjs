@@ -63,7 +63,7 @@ for (const deployedStep of [3, 4]) {
         'foreign_note_access_denied', 'owner_change_denied', 'owner_notes_preserved']) {
         assert.match(results.find(item => item.attackId === id).observed, /미실행/u);
       }
-      assert.deepEqual(config.allowedRoutes, ['GET /api/notes', 'POST /api/notes',
+      assert.deepEqual(config.allowedRoutes.filter(route => route.includes('/api/notes')), ['GET /api/notes', 'POST /api/notes',
         'GET /api/notes/:id', 'PUT /api/notes/:id', 'DELETE /api/notes/:id']);
     } finally { globalThis.fetch = originalFetch; }
   });

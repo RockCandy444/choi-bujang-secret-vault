@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fixtureRequests } from './fixture-7.mjs';
@@ -36,6 +36,19 @@ export async function checkDecider({ decide, ruleIds }) {
       { name: '다시 확인한 복합 이상 접속', request: { ...suspicious,
         requestId: randomUUID(), stepUp: { verified: true, authAgeSeconds: 60 } },
       decision: 'allow' },
+    );
+  }
+  if (ruleIds.includes('resource_route')) {
+    const query = 'action=export';
+    checks.push(
+      { name: '정확한 메모 수정 경로 (소유권은 API에서 검사)',
+        request: { ...normal, method: 'PUT', route: 'PUT /notes/:id' }, decision: 'allow' },
+      { name: 'ID와 같은 깊이의 export 경로 거부',
+        request: { ...normal, path: '/notes/export' }, decision: 'deny' },
+      { name: '검증된 강사 권한 없는 공지 수정 거부', request: { ...normal,
+        method: 'PUT', path: '/api/notices', route: 'PUT /api/notices' }, decision: 'deny' },
+      { name: '쿼리로 기능 선택 거부', request: { ...normal, queryLength: query.length,
+        querySha256: createHash('sha256').update(query).digest('hex') }, decision: 'deny' },
     );
   }
   const results = [];

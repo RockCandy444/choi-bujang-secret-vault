@@ -1,11 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import config from '../aleph.config.json' with { type: 'json' };
 import { createLoginVerifier } from '../src/verify-login.mjs';
+import { RESOURCE_IDS, RESOURCE_ID_HEADER } from '../src/resource-ids.mjs';
+import { denyApi } from '../src/api-denial.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 let verifyLoginAuthorization;
 
 export default async function handler(request, response) {
+  const reject = (status, reason) => denyApi(response, RESOURCE_IDS.notes, status, reason);
+  response.setHeader(RESOURCE_ID_HEADER, RESOURCE_IDS.notes);
   response.setHeader('Cache-Control', 'no-store');
   response.setHeader('Vercel-CDN-Cache-Control', 'no-store');
   response.setHeader('Vary', 'Authorization');
@@ -14,23 +18,23 @@ export default async function handler(request, response) {
     const path = new URL(request.url || '/api/notes', 'https://route.invalid').pathname;
     if (path !== '/api/notes' && path !== '/api/notes/') {
       const match = /^\/api\/notes\/([^/]+)\/?$/u.exec(path);
-      if (!match) return response.status(404).json({ error: 'NOT_FOUND' });
+      if (!match) return reject(404, 'NOT_FOUND');
       id = decodeURIComponent(match[1]);
-      if (!UUID.test(id)) return response.status(400).json({ error: 'INVALID_NOTE_ID' });
+      if (!UUID.test(id)) return reject(400, 'INVALID_NOTE_ID');
       id = id.toLowerCase();
     }
   } catch {
-    return response.status(400).json({ error: 'INVALID_NOTE_ID' });
+    return reject(400, 'INVALID_NOTE_ID');
   }
   const methods = id ? ['GET', 'PUT', 'DELETE'] : ['GET', 'POST'];
   if (!methods.includes(request.method)) {
     response.setHeader('Allow', methods.join(', '));
-    return response.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
+    return reject(405, 'METHOD_NOT_ALLOWED');
   }
 
   const authorization = request.headers?.authorization;
   if (typeof authorization !== 'string' || !authorization) {
-    return response.status(401).json({ error: 'LOGIN_REQUIRED' });
+    return reject(401, 'LOGIN_REQUIRED');
   }
 
   const secret = process.env.SUPABASE_SECRET_KEY;
@@ -44,7 +48,7 @@ export default async function handler(request, response) {
     endpoint = new URL('/rest/v1/notes', project);
     verifyLoginAuthorization ??= createLoginVerifier({ config, supabaseSecretKey: secret });
   } catch {
-    return response.status(503).json({ error: 'NOTES_NOT_CONFIGURED' });
+    return reject(503, 'NOTES_NOT_CONFIGURED');
   }
 
   let login;
@@ -52,10 +56,10 @@ export default async function handler(request, response) {
     // Only the existing verifier establishes identity. Ignore client userId/role.
     login = await verifyLoginAuthorization(authorization);
     if (!login) {
-      return response.status(401).json({ error: 'LOGIN_REQUIRED' });
+      return reject(401, 'LOGIN_REQUIRED');
     }
   } catch {
-    return response.status(401).json({ error: 'LOGIN_REQUIRED' });
+    return reject(401, 'LOGIN_REQUIRED');
   }
 
   let payload;
@@ -69,12 +73,12 @@ export default async function handler(request, response) {
         throw new Error('Invalid note');
       }
       if (request.method === 'PUT' && Object.hasOwn(input, 'owner_id')) {
-        return response.status(400).json({ error: 'OWNER_CHANGE_NOT_ALLOWED' });
+        return reject(400, 'OWNER_CHANGE_NOT_ALLOWED');
       }
       payload = { title: input.title.trim(), content: input.body };
       if (request.method === 'POST') {
         if (input.id !== undefined && (typeof input.id !== 'string' || !UUID.test(input.id))) {
-          return response.status(400).json({ error: 'INVALID_NOTE_ID' });
+          return reject(400, 'INVALID_NOTE_ID');
         }
         id = input.id?.toLowerCase() ?? randomUUID();
         payload.id = id;
@@ -82,7 +86,7 @@ export default async function handler(request, response) {
       }
       // Never accept owner_id, userId or role from the request body.
     } catch {
-      return response.status(400).json({ error: 'INVALID_NOTE' });
+      return reject(400, 'INVALID_NOTE');
     }
   }
   endpoint.searchParams.set('select', 'id,title,content,owner_id');
@@ -107,7 +111,7 @@ export default async function handler(request, response) {
       redirect: 'error', signal: AbortSignal.timeout(10000), cache: 'no-store',
     });
     if (request.method === 'POST' && upstream.status === 409) {
-      return response.status(409).json({ error: 'NOTE_ALREADY_EXISTS' });
+      return reject(409, 'NOTE_ALREADY_EXISTS');
     }
     if (!upstream.ok) throw new Error('Upstream failure');
     const rows = await upstream.json();
@@ -121,7 +125,7 @@ export default async function handler(request, response) {
     }
     if (id && rows.length === 0) {
       if (request.method === 'POST') throw new Error('Missing created note');
-      return response.status(404).json({ error: 'NOTE_NOT_FOUND' });
+      return reject(404, 'NOTE_NOT_FOUND');
     }
     if (request.method === 'POST' || request.method === 'DELETE') {
       return response.status(request.method === 'POST' ? 201 : 200).json({ id });
@@ -130,6 +134,6 @@ export default async function handler(request, response) {
     return response.status(200).json(id ? notes[0] : notes);
   } catch {
     // Do not log the exception: it may contain an upstream URL or credential.
-    return response.status(502).json({ error: 'NOTES_UNAVAILABLE' });
+    return reject(502, 'NOTES_UNAVAILABLE');
   }
 }

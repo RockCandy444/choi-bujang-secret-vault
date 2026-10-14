@@ -1,0 +1,124 @@
+{
+  "schema": "aleph.xdr.deny-candidates.v1",
+  "normalSources": [
+    "37f4874bb71eccbdfc6525084ccf9aec4826120547a3e8a8cadbc229d6740e2d",
+    "78f79fbdc8d6bdda4f60b1b09ae9adb4f8053543ce3cf09ce4202bb648ace081",
+    "65471434c724d5697393576a63b719d329333244bf0d477fde3497ce673dd588",
+    "82dda605d7bc1902d37620023208322b75df0aca9d5f1e75e78a44906fb623e7",
+    "50f76f5175d04073040e3f8b28f2df8cdf9357ffc751d9b47b0c8815c3d786d4"
+  ],
+  "rules": [
+    {
+      "ruleId": "xdr.known_cve.37bf161d276bb9153a40f8c8bdf3667dc816edd5a3e4e6c804dd6f10eba69390",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "631f08140b24b7274d12df3c37a1a80ce5876dafd7007d772e0114fddf88b682",
+      "alertIds": [
+        "kc-01"
+      ],
+      "createdAt": "2026-09-27T00:14:02.000Z",
+      "expiresAt": "2026-09-27T00:29:02.000Z",
+      "pattern": "요청 머리글의 JNDI 원격 조회",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.known_cve.6ef8ee6425c3e3f21af487fb318d8c618928846a518fb1cb27ca07a6471bb8ad",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "631f08140b24b7274d12df3c37a1a80ce5876dafd7007d772e0114fddf88b682",
+      "alertIds": [
+        "kc-02"
+      ],
+      "createdAt": "2026-09-27T00:14:18.000Z",
+      "expiresAt": "2026-09-27T00:29:18.000Z",
+      "pattern": "요청 인자의 JNDI 원격 조회",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.known_cve.16265c1631f77c12ab8a195c8a30226b8888eac3107f0dca6b84db932d032a25",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "529c3ea1a2b67da59e3f7a81e14c30e62f654db95c4e16c3d5bfaf78cf2d8420",
+      "alertIds": [
+        "kc-03"
+      ],
+      "createdAt": "2026-09-27T00:17:06.000Z",
+      "expiresAt": "2026-09-27T00:32:06.000Z",
+      "pattern": "요청 인자의 JNDI 원격 조회",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.known_cve.c89557224a3d2dbad5d3ae696e6fc705e4093628f51576e025024f6007d2ae02",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "f8cef54822fd3aaa005869af8bf942f3a9c3b56a911498ec935fce7b3768585d",
+      "alertIds": [
+        "kc-04"
+      ],
+      "createdAt": "2026-09-27T01:04:22.000Z",
+      "expiresAt": "2026-09-27T01:19:22.000Z",
+      "pattern": "요청 머리글의 JNDI 원격 조회",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.known_cve.9db6da9087339d2d4361d6b86ebd51b43c88fdcdfc1252d3f769a67fb466c122",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "eacd5267d80f13eed692aff9d1608e048f9892a8d7ba0a74d4407a72ebecebad",
+      "alertIds": [
+        "kc-05"
+      ],
+      "createdAt": "2026-09-27T01:21:09.000Z",
+      "expiresAt": "2026-09-27T01:36:09.000Z",
+      "pattern": "취약점 점검 흔적과 원격 조회의 동시 일치",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.known_cve.89654c0e46862955521589cbe6b9536f0be654faed373c4de56d811345214fbd",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "35413343c1f2a50e500b0c304f26ee6b167e85adfece20974d553660be5ba1d3",
+      "alertIds": [
+        "kc-06"
+      ],
+      "createdAt": "2026-09-27T02:08:41.000Z",
+      "expiresAt": "2026-09-27T02:23:41.000Z",
+      "pattern": "요청 인자의 JNDI 원격 조회",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.known_cve.3a277cd0110a190fc76927ffd82dc19e70c740b25dffd0940899839e6edc35a9",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "9a3019b2f7529f317069c9c6df4fb1ef04ef88a0ba4542372f5b0e458a8f4737",
+      "alertIds": [
+        "kc-07"
+      ],
+      "createdAt": "2026-09-27T04:06:15.000Z",
+      "expiresAt": "2026-09-27T04:21:15.000Z",
+      "pattern": "요청 머리글의 JNDI 원격 조회",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.known_cve.4c1e040f4e800cb6ca254263ce0327832669c100d825e58d1e28689dc04c9093",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "e77054b58ab2079ce05f74ceeb836ae589b7428034349885983cf878e6a7648d",
+      "alertIds": [
+        "kc-08"
+      ],
+      "createdAt": "2026-09-27T05:19:03.000Z",
+      "expiresAt": "2026-09-27T05:34:03.000Z",
+      "pattern": "요청 머리글의 JNDI 원격 조회",
+      "status": "expired_candidate"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "moduleKey": "known-cve",
+  "patterns": [
+    {
+      "name": "요청 머리글의 JNDI 원격 조회",
+      "condition": "data.useragent 또는 data.headers의 문자열 값에 닫힌 JNDI 원격 조회 형태가 있는지 확인한다. 유효한 출발 주소와 규칙 수준 10 이상이 함께 있을 때만 명확한 차단 후보로 삼는다.",
+      "evidence": "Apache CVE-2021-44228 설명은 공격자가 제어하는 로그·인자의 JNDI 원격 끝점 악용을 설명하며, MITRE T1190은 공개 애플리케이션의 취약점 악용을 다룬다.",
+      "sources": ["https://logging.apache.org/security.html#CVE-2021-44228", "https://attack.mitre.org/techniques/T1190/"]
+    },
+    {
+      "name": "요청 인자의 JNDI 원격 조회",
+      "condition": "data.url의 쿼리에 닫힌 JNDI 원격 조회 형태가 있는지 확인한다. 단순 취약점 이름·jndi 단어·잘린 형태는 알림 신호이며 차단 근거로 쓰지 않는다.",
+      "evidence": "Apache CVE-2021-44228은 공격자가 제어하는 메시지 인자의 원격 조회 위험을 명시한다. 요청 형태 일치는 악용 시도 신호이며 실행 성공 증거는 아니다.",
+      "sources": ["https://logging.apache.org/security.html#CVE-2021-44228", "https://attack.mitre.org/techniques/T1190/"]
+    },
+    {
+      "name": "취약점 점검 흔적과 원격 조회의 동시 일치",
+      "condition": "규칙 설명의 알려진 취약점 점검 흔적과 머리글 또는 쿼리의 완전한 원격 조회 형태가 함께 있는지 확인한다. 수업용 프로그램 이름이나 점검 도구 이름만으로 차단하지 않는다.",
+      "evidence": "Apache의 JNDI 원격 조회 위험과 MITRE T1190의 요청·추가 신호 상관 분석을 바탕으로 한 수업용 보조 패턴이다. 점검 흔적만으로 악용이나 침입 성공을 확정하지 않는다.",
+      "sources": ["https://logging.apache.org/security.html#CVE-2021-44228", "https://attack.mitre.org/techniques/T1190/"]
+    }
+  ],
+  "note": "규칙 수준 10과 확신도는 가상 경보의 로컬 기준이며 Apache·MITRE의 공식 임계값이 아니다. 경보 안의 문서용 원격 조회 문자열을 실행하거나 다른 시스템에 보내지 않는다."
+}

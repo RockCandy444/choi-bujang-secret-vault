@@ -26,6 +26,15 @@
     .app-status { margin: 26px 0; padding: 20px; border: 1px solid #51667c; border-radius: 14px; background: #1a2a3d; }
     .app-status h2 { margin: 0; font-size: 22px; }
     .app-status p { margin: 12px 0 0; font-size: 15px; }
+    .operations { margin: 26px 0; padding: 20px; border: 1px solid #8ad8df; border-radius: 14px; background: #1a2a3d; }
+    .operations h2 { margin-top: 0; }
+    .operations button { padding: 12px 16px; border: 1px solid #8ad8df; border-radius: 8px; background: #101a28; color: #ecf4ff; font: inherit; cursor: pointer; }
+    .operations button:disabled { opacity: .55; }
+    .operations dl { display: grid; grid-template-columns: 100px 1fr; gap: 12px; }
+    .operations dd { margin: 0; overflow-wrap: anywhere; }
+    .table-scroll { overflow-x: auto; }
+    .operations table { border-collapse: collapse; min-width: 760px; width: 100%; font-size: 14px; }
+    .operations th, .operations td { padding: 10px; text-align: left; border-bottom: 1px solid #51667c; vertical-align: top; overflow-wrap: anywhere; }
     #device-status { color: #ffe3e8; font-weight: 700; }
     #connection-status { color: #8ad8df; }
     .device-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
@@ -50,6 +59,21 @@
     <div class="eyebrow">BYTE BACK · 나만의 접속 앱</div>
     <h1>내 자료실</h1>
     <p>실습을 위해 만든 가상 자료를 조회합니다.</p>
+    <section class="operations" aria-labelledby="operations-heading">
+      <h2 id="operations-heading">탈환 작전실 · 12단계</h2>
+      <p>판정기·탐지·회수·복구와 단계별 자기 점검을 확인합니다. 공식 41종 시험과 심판 판정은 별도로 확인해야 합니다.</p>
+      <button id="operations-refresh" type="button">실제 API 결과 다시 확인</button>
+      <p id="operations-status" role="status" aria-live="polite">아직 확인하지 않았습니다.</p>
+      <dl id="operations-summary"></dl>
+      <div class="table-scroll" tabindex="0" aria-label="단계별 정상·금지 요청 확인 표">
+        <table>
+          <caption>1~11단계 확인 절차 · 본문 없는 실측 결과와 미실행</caption>
+          <thead><tr><th scope="col">단계·종류</th><th scope="col">요청</th><th scope="col">기대 결과</th><th scope="col">실제 API 결과</th><th scope="col">자기 점검 요청 ID</th><th scope="col">확인 시각</th></tr></thead>
+          <tbody id="operations-checks"></tbody>
+        </table>
+      </div>
+      <p>자기 점검 ID·시각·HTTP 결과로 가린 서버 기록을 대조합니다. 비밀값과 메모 본문은 표시하지 않습니다.</p>
+    </section>
     <section class="app-status" aria-labelledby="app-heading">
       <h2 id="app-heading">BYTE BACK 내 자료실</h2>
       <p>브라우저 메뉴의 ‘앱 설치’ 또는 ‘홈 화면에 추가’로 이 자료실을 열 수 있습니다. 지원 여부는 브라우저에 따라 다릅니다.</p>
@@ -93,6 +117,7 @@
     </section>
     <ul id="notes" aria-live="polite"><li>로그인 후 자료를 볼 수 있습니다.</li></ul>
   </main>
+  <script type="module" src="/operations.js"></script>
   <script type="module">
     // Display hints only. Neither installation nor network state grants access.
     const standaloneDisplay = globalThis.matchMedia?.('(display-mode: standalone)');

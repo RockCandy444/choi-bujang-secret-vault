@@ -10,7 +10,7 @@ import { deploymentIdentity } from '../scripts/deployment-identity.mjs';
 import { runAttackChecks } from '../src/attack-check.mjs';
 
 const root = new URL('../', import.meta.url);
-const config = JSON.parse(await readFile(new URL('aleph.config.json', root), 'utf8'));
+const config = { ...JSON.parse(await readFile(new URL('aleph.config.json', root), 'utf8')), step: 11 };
 const environment = { VERCEL_GIT_PROVIDER: 'github', VERCEL_GIT_REPO_OWNER: 'RockCandy444',
   VERCEL_GIT_REPO_SLUG: 'choi-bujang-secret-vault', VERCEL_GIT_COMMIT_SHA: 'a'.repeat(40),
   VERCEL_URL: 'stage11-build-test.vercel.app' };
@@ -46,6 +46,7 @@ test('stage 11 isolated build ships manifest/icons with empty notes and retains 
     for (const path of ['scripts', 'public', 'aleph.config.json']) {
       await cp(new URL(path, root), join(directory, path), { recursive: true });
     }
+    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify(config));
     execFileSync(process.execPath, ['scripts/build-public.mjs'], { cwd: directory, windowsHide: true,
       stdio: 'pipe', env: { ...process.env, ...environment } });
     const identity = JSON.parse(await readFile(join(directory, 'public/aleph.json'), 'utf8'));
@@ -66,7 +67,7 @@ test('stage 11 isolated build ships manifest/icons with empty notes and retains 
     }
     assert.match(html, /href="\/manifest.webmanifest"/u);
     assert.doesNotMatch(html, /localStorage|sessionStorage|indexedDB|caches\.|serviceWorker/u);
-    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify({ ...config, step: 12 }));
+    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify({ ...config, step: 13 }));
     assert.throws(() => execFileSync(process.execPath, ['scripts/build-public.mjs', '--local'],
       { cwd: directory, windowsHide: true, stdio: 'pipe' }));
   } finally {

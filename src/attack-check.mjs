@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 
 export async function runAttackChecks(config) {
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -35,7 +35,7 @@ export async function runAttackChecks(config) {
       // A non-JSON response is a failed check, not a successful deployment.
     }
   }
-  if ([3, 4, 5, 6, 7, 8, 9, 10, 11].includes(config.step)) {
+  if ([3, 4, 5, 6, 7, 8, 9, 10, 11, 12].includes(config.step)) {
     const results = [{ attackId: 'anonymous_static_note_read',
       expected: '정적 JSON은 HTTP 200의 빈 메모 목록',
       observed: response.status === 200 && empty ? 'HTTP 200: 정적 메모 0건'
@@ -239,6 +239,46 @@ export async function runAttackChecks(config) {
       results.push({ attackId: 'registered_device_and_request_signatures',
         expected: '승인 전 자료 없음; 운영 등록 기기 화면·CRUD 유지; 서명 없음·경로/본문 변조 거부',
         observed: '미실행: 운영 기기 승인·서명 확인 계약 없음; 등록 기기 열기와 세 서명 공격은 운영 연결 뒤 확인 필요' });
+    }
+    if (config.step >= 12) {
+      const checked = await fetch(new URL('/api/operations', app), { redirect: 'error',
+        signal: AbortSignal.timeout(10000), cache: 'no-store' });
+      let valid = false;
+      let executed = null;
+      let matched = null;
+      let unrun = null;
+      try {
+        const summary = await checked.json();
+        const rows = summary.checks;
+        executed = summary.counts?.executed;
+        matched = summary.counts?.matched;
+        unrun = summary.counts?.unrun;
+        valid = checked.status === 200 && summary.schema === 'aleph.operations.v1'
+          && summary.step === 12 && summary.commit === config.expectedCommit
+          && Array.isArray(rows) && rows.length === 22
+          && executed === rows.filter(row => row.state !== 'unrun').length
+          && matched === rows.filter(row => row.state === 'matched').length
+          && unrun === rows.filter(row => row.state === 'unrun').length
+          && summary.counts.failed === 0 && executed === 5 && matched === 5 && unrun === 17
+          && ['detection', 'revocation', 'recovery', 'officialAttacks'].every(key => summary[key]?.state === 'unrun')
+          && summary.officialAttacks.total === 41 && summary.officialAttacks.passed === null
+          && rows.every(row => row.state === 'unrun'
+            ? row.requestId === null && row.checkedAt === null
+            : /^[0-9a-f-]{36}$/u.test(row.requestId) && Number.isFinite(Date.parse(row.checkedAt)))
+          && homeText.includes('id="operations-heading"') && homeText.includes('src="/operations.js"');
+      } catch { /* No response source, note text, or private metadata in the bundle. */ }
+      results.push({ attackId: 'operations_api_receipt',
+        expected: '현재 커밋·step 12의 작전실 API; 실측 5건·기대 일치 5건·미실행 17건; 운영 결과·41종 미실행',
+        observed: valid ? `HTTP 200: 작전실 실측 ${executed}건·기대 일치 ${matched}건·미실행 ${unrun}건; 공식 41종 미실행`
+          : `HTTP ${checked.status}: 작전실 응답·현재 커밋·실측 결과 점검 실패` });
+      const asset = await fetch(new URL('/operations.js', app), { redirect: 'error',
+        signal: AbortSignal.timeout(10000), cache: 'no-store' });
+      const code = await asset.text();
+      const safeAsset = asset.status === 200 && code.includes("fetch('/api/operations'")
+        && !/\bsb_secret_[A-Za-z0-9_-]+|\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/u.test(code);
+      results.push({ attackId: 'operations_client_asset', expected: '작전실 화면 스크립트 HTTP 200; 요약 API 연결·비밀값 없음',
+        observed: safeAsset ? 'HTTP 200: 화면 스크립트·요약 API 연결 확인'
+          : `HTTP ${asset.status}: 작전실 화면 스크립트 점검 실패` });
     }
     return results;
   }

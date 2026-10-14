@@ -1,0 +1,112 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { readFile, cp, mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { join, resolve, sep } from 'node:path';
+import { tmpdir } from 'node:os';
+import { operationsSummary } from '../src/operations.mjs';
+import handler from '../api/operations.js';
+import { RULE_IDS } from '../src/decider.mjs';
+
+const config = JSON.parse(await readFile(new URL('../aleph.config.json', import.meta.url), 'utf8'));
+const commit = 'a'.repeat(40);
+const capture = () => ({ headers: {}, setHeader(key, value) { this.headers[key] = value; },
+  status(value) { this.code = value; return this; }, json(value) { this.body = value; return this; } });
+
+test('operation receipt correlates safe real responses and never invents engine results', async () => {
+  const logs = [];
+  const previous = console.info;
+  console.info = value => logs.push(JSON.parse(value));
+  try {
+    const requests = [];
+    const summary = await operationsSummary({ config, commit, fetchImpl: async (url, options) => {
+      requests.push({ url: String(url), options });
+      assert.deepEqual(Object.keys(options.headers), ['X-Aleph-Check-Id']);
+      assert.equal(options.body, undefined);
+      if (url.pathname === '/data.json') return Response.json({ notes: [] });
+      if (url.pathname === '/api/device/status') return Response.json(
+        { approved: false, error: 'DEVICE_APPROVAL_NOT_CONFIGURED' }, { status: 503 });
+      return Response.json({ error: 'LOGIN_REQUIRED' }, { status: 401 });
+    } });
+    assert.equal(requests.length, 5);
+    assert.equal(summary.checks.length, 22);
+    assert.deepEqual(summary.counts, { executed: 5, matched: 5, failed: 0, unrun: 17 });
+    assert.deepEqual(summary.policy.ruleIds, RULE_IDS);
+    assert.equal(summary.officialAttacks.passed, null);
+    assert.equal(summary.detection.eventCount, null);
+    assert.equal(summary.revocation.revokedCount, null);
+    assert.equal(summary.recovery.restoredVersion, null);
+    for (const row of summary.checks) {
+      if (row.state === 'unrun') {
+        assert.equal(row.requestId, null); assert.equal(row.checkedAt, null);
+      } else {
+        assert.deepEqual(logs.find(log => log.requestId === row.requestId),
+          { source: 'student_operations_check', ...row });
+      }
+    }
+  } finally { console.info = previous; }
+});
+
+test('mismatched or private upstream payloads and network errors cannot become successes or leak', async () => {
+  const previous = console.info;
+  const logs = [];
+  console.info = value => logs.push(value);
+  try {
+    const summary = await operationsSummary({ config, commit: 'invalid', fetchImpl: async url => {
+      if (url.pathname === '/api/restore') throw new Error('private-test-detail');
+      return Response.json({ notes: [{ content: 'private-test-detail' }], approved: true }, { status: 200 });
+    } });
+    assert.deepEqual(summary.counts, { executed: 5, matched: 0, failed: 5, unrun: 17 });
+    assert.equal(summary.commit, null);
+    assert.equal(summary.checks.filter(row => row.state === 'error').length, 1);
+    assert.doesNotMatch(JSON.stringify(summary) + logs.join(''), /private-test-detail/u);
+    await assert.rejects(() => operationsSummary({ config: { ...config, publicAppUrl: 'http://unsafe.test' } }),
+      /invalid_operations_target/u);
+  } finally { console.info = previous; }
+});
+
+test('public operations endpoint rejects writes and records all target failures without private details', async () => {
+  const previousFetch = globalThis.fetch;
+  try {
+    let calls = 0;
+    globalThis.fetch = async () => { calls++; throw new Error('private-test-detail'); };
+    const write = capture();
+    await handler({ method: 'POST', headers: { authorization: 'untrusted' } }, write);
+    assert.equal(write.code, 405); assert.equal(calls, 0);
+    assert.equal(write.headers['Cache-Control'], 'no-store');
+    const previous = console.info; console.info = () => {};
+    try {
+      const read = capture(); await handler({ method: 'GET' }, read);
+      assert.equal(read.code, 200);
+      assert.equal(read.body.counts.failed, 5);
+      assert.equal(read.headers['X-Aleph-Check-Id'], read.body.requestId);
+      assert.doesNotMatch(JSON.stringify(read.body), /private-test-detail/u);
+    } finally { console.info = previous; }
+  } finally { globalThis.fetch = previousFetch; }
+});
+
+test('stage 12 build includes receipt UI while keeping notes empty and older control settings', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'aleph-step12-'));
+  try {
+    for (const path of ['scripts', 'public', 'aleph.config.json']) {
+      await cp(new URL('../' + path, import.meta.url), join(directory, path), { recursive: true });
+    }
+    execFileSync(process.execPath, ['scripts/build-public.mjs'], { cwd: directory,
+      windowsHide: true, stdio: 'pipe', env: { ...process.env, VERCEL_GIT_PROVIDER: 'github',
+        VERCEL_GIT_REPO_OWNER: 'RockCandy444', VERCEL_GIT_REPO_SLUG: 'choi-bujang-secret-vault',
+        VERCEL_GIT_COMMIT_SHA: commit, VERCEL_URL: 'stage12-test.vercel.app' } });
+    const identity = JSON.parse(await readFile(join(directory, 'public/aleph.json'), 'utf8'));
+    assert.equal(identity.step, 12); assert.equal(identity.commit, commit);
+    assert.equal(identity.judgeIssuer, config.judgeIssuer);
+    assert.deepEqual(identity.allowedRoutes, config.allowedRoutes);
+    assert.equal(identity.restoreRoute, '/api/restore');
+    assert.deepEqual(JSON.parse(await readFile(join(directory, 'public/data.json'), 'utf8')), { notes: [] });
+    assert.match(await readFile(join(directory, 'public/index.html'), 'utf8'), /id="operations-heading"/u);
+    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify({ ...config, step: 13 }));
+    assert.throws(() => execFileSync(process.execPath, ['scripts/build-public.mjs', '--local'],
+      { cwd: directory, stdio: 'pipe', windowsHide: true }));
+  } finally {
+    assert.ok(resolve(directory).startsWith(`${resolve(tmpdir())}${sep}aleph-step12-`));
+    await rm(directory, { recursive: true, force: true });
+  }
+});

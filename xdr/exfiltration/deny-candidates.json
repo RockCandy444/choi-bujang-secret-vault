@@ -1,0 +1,149 @@
+{
+  "schema": "aleph.xdr.deny-candidates.v1",
+  "normalDestinations": [
+    "6d99cbd08fc6c99cdb2d942a4cbb097c6b54496bbbc3ffd6351b145508dd2935",
+    "562ae54e815169e4b68b8396ffb6989b3fc1abee6415d60a51bcf866a8c8b0f5"
+  ],
+  "rules": [
+    {
+      "ruleId": "xdr.exfiltration.2e7c7325709ef126a538311e9bd722632011f221542b8c9b4851557b30c78960",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "destinationIpSha256": "3b5cd36857cbc87d59a841d2d375222d234ccf0317fb8656eceb0856c0c68048",
+      "alertIds": [
+        "ex-01"
+      ],
+      "createdAt": "2026-09-27T00:16:03.000Z",
+      "expiresAt": "2026-09-27T00:31:03.000Z",
+      "pattern": "처음 보는 목적지로 대용량 전송",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.exfiltration.f62c03f9561a7bef11b8dd978042e68d842026e87ce1bfa1ced5eccfbd48cdbc",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "destinationIpSha256": "55dceab69dc1960630079e217a48a497ae11bbb599adb3c601c9da724f1ab6ad",
+      "alertIds": [
+        "ex-02"
+      ],
+      "createdAt": "2026-09-27T00:16:48.000Z",
+      "expiresAt": "2026-09-27T00:31:48.000Z",
+      "pattern": "업무 시간 밖 압축 파일 반출",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.exfiltration.ffcbc3450623b9c65c4f0fd0b7859d7c9ac75f79663fd895d9a54fee61421287",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "destinationIpSha256": "3b5cd36857cbc87d59a841d2d375222d234ccf0317fb8656eceb0856c0c68048",
+      "alertIds": [
+        "ex-03"
+      ],
+      "createdAt": "2026-09-27T01:05:14.000Z",
+      "expiresAt": "2026-09-27T01:20:14.000Z",
+      "pattern": "같은 목적지의 반복 대용량·전체 자료 반출",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.exfiltration.a5893c2d44a4a86d3cdfdc5e6df0610a5eee6a18ce5336910fdf51e097432a17",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "destinationIpSha256": "55dceab69dc1960630079e217a48a497ae11bbb599adb3c601c9da724f1ab6ad",
+      "alertIds": [
+        "ex-04"
+      ],
+      "createdAt": "2026-09-27T01:20:07.000Z",
+      "expiresAt": "2026-09-27T01:35:07.000Z",
+      "pattern": "평소와 다른 포트의 연속 자료 반출",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.exfiltration.f2fb84f2bc294da87e750c7efed53eab47cd2623abad953531e4339055e03692",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "destinationIpSha256": "f73370a66921c4a5139b47a5a149adff2754f49831dd8bee3e83662d7c53c17e",
+      "alertIds": [
+        "ex-05"
+      ],
+      "createdAt": "2026-09-27T02:04:26.000Z",
+      "expiresAt": "2026-09-27T02:19:26.000Z",
+      "pattern": "처음 보는 목적지로 대용량 전송",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.exfiltration.264be51b2e70914758466d676fe2f7e909a45bc397ecedfc98ac9e33d2a16216",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "destinationIpSha256": "56823f386751c29f4de93d170fe081cff6ee550292433e26f98191b3ea8eea3d",
+      "alertIds": [
+        "ex-06"
+      ],
+      "createdAt": "2026-09-27T03:02:19.000Z",
+      "expiresAt": "2026-09-27T03:17:19.000Z",
+      "pattern": "같은 목적지의 반복 대용량·전체 자료 반출",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.exfiltration.69c4c69b1a72a1a1f88fca9a442edd88de2474a8f0555e916761bce7ba4d2e6b",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "destinationIpSha256": "d6c4658934c37a9020ca98a1444fcc5b1b672262e13cc274a30648d7f2f5bc11",
+      "alertIds": [
+        "ex-07"
+      ],
+      "createdAt": "2026-09-27T04:12:08.000Z",
+      "expiresAt": "2026-09-27T04:27:08.000Z",
+      "pattern": "처음 보는 목적지로 대용량 전송",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.exfiltration.e8833f84938353bf10bc021bc675245806492a540c3925d2e80afa45fa8df84e",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "destinationIpSha256": "ef5268f8f9ab9f3a647b9e6225d5ef95d34c781b0c92971de563dc2365b35823",
+      "alertIds": [
+        "ex-08"
+      ],
+      "createdAt": "2026-09-27T05:03:41.000Z",
+      "expiresAt": "2026-09-27T05:18:41.000Z",
+      "pattern": "같은 목적지의 반복 대용량·전체 자료 반출",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.exfiltration.9778fb82b8e175c49d9a37790f806fcb30eaebb88c65c7ddeb0927a005f1e3fe",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "destinationIpSha256": "e7ff462fa0f1336308bdc10f0832b5e3d32716a4b6b13996d71c50c6e9d318c2",
+      "alertIds": [
+        "ex-09"
+      ],
+      "createdAt": "2026-09-27T06:08:12.000Z",
+      "expiresAt": "2026-09-27T06:23:12.000Z",
+      "pattern": "처음 보는 목적지로 대용량 전송",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.exfiltration.742ea86571755917b0ff15abf01c4b11744effb357cd4193455181ad3ddc2533",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "destinationIpSha256": "fe064441e1b92e88d2e265d986a28b8f3f7510af7befd8531876ca4b4409ce40",
+      "alertIds": [
+        "ex-10"
+      ],
+      "createdAt": "2026-09-27T07:01:05.000Z",
+      "expiresAt": "2026-09-27T07:16:05.000Z",
+      "pattern": "처음 보는 목적지로 대용량 전송",
+      "status": "expired_candidate"
+    }
+  ]
+}

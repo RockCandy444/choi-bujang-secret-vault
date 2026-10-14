@@ -3,6 +3,63 @@
 현재 단계: **12단계 「탈환 작전실을 완성합니다」 · 실측과 미실행을 구분하는 저장점** (2026-10-14).
 시작 때 마지막 커밋 `0e06850`의 11단계 저장점과 README가 일치하고 작업 폴더가 깨끗한 것을 확인했습니다.
 
+## 보너스 xdr-06 저장점 (2026-10-14)
+
+`xdr/exfiltration/read-alerts.mjs`는 원본 수업용 Wazuh 경보 30건을 보존하며
+시각·출발 주소·가상 계정·규칙 수준·설명만 30줄로 추출합니다. 의심스러운
+비밀값과 실제 계정처럼 보이는 값은 가리고 판단 모듈과 따로 실행합니다.
+`patterns.json`은 처음 보는 목적지로 대용량 전송, 업무 시간 밖 압축 파일
+반출, 같은 목적지의 반복 대용량·전체 자료 반출, 평소와 다른 포트의 연속
+자료 반출을 조건·한 줄 근거와 함께 정리했습니다. 근거는
+[MITRE T1041](https://attack.mitre.org/techniques/T1041/)·
+[T1048](https://attack.mitre.org/techniques/T1048/)입니다. 경보에 통로·프로토콜
+증거가 없으면 해당 기법 성립이나 실제 유출 성공을 확정하지 않습니다.
+
+`decide.mjs`는 맨 위 패턴 상수와 `decide(alert)` 하나를 내보냅니다.
+다른 파일·패키지·환경변수·인터넷·파일 입출력 없이 `{action, confidence, reason}`을
+계산합니다. 0.85 이상은 block, 0.5 이상은 alert, 나머지는 record입니다.
+전송 설명과 크기·반복·파일 수·목적지·수준의 복합 근거를 사용합니다.
+실패·취소·전송 부재·작은 반출은 알림에만 남기고 번호·계정·MITRE 표기·
+수준 하나로 차단하지 않습니다. 크기·횟수·수준·확신도는 수업용 기준입니다.
+
+실제 로컬 결과는 **block 10건 · alert 10건 · record 10건**, 정상 이벤트
+`ex-21`~`ex-30` 차단은 0건입니다. `respond.mjs`는 알림 20줄을 기존
+`xdr/alerts.log` 뒤에 추가하고 block 10건만 비활성 목적지 거부 후보로 저장했습니다.
+목적지는 지문으로 저장하고 원문 주소·계정·설명은 알림에 넣지 않습니다.
+정상 경보에도 등장한 목적지는 후보를 억제합니다. 근거 경보 번호와 사건
+시각부터 15분 뒤 만료 시각을 붙이며 재전송은 만료를 연장하지 않습니다.
+9월 27일 시험 사건의 후보 10건은 모두 만료됐고 실제 적용 수는 0건입니다.
+
+**제작 4의 실제 ZTNA 목적지 차단 연결은 미완료입니다.** 현재 18개 요청
+계약에는 전송 목적지·프로토콜이나 동적 거부 규칙 등록 인터페이스가 없습니다.
+후보의 `active: false`, `match: null`, 대응 결과의 `ztnaConnected: false`를
+유지합니다. 운영 측의 검증된 경보 연결·목적지 및 규칙 등록 계약이 필요합니다.
+기존 `src/decider.mjs`의 여섯 규칙은 보존합니다. 가상 분류를 실제 유출
+차단·정상 운영 접속 통과·심판 판정으로 보고하지 않습니다.
+
+검사: `node --test test/exfiltration.test.mjs test/xdr-run.test.mjs` 12건 통과,
+`npm run decider:test` 기존 가상 요청 10건 통과입니다. 단일 파일 실행·
+읽기 명령의 30줄 출력·비밀값 가림·복합 근거·정상 차단 없음·만료 경계·
+재전송·공유 목적지 억제·오염 후보 거부·원본과 기존 판정기 보존을 확인했습니다.
+
+다시 실행: `npm run xdr:run -- exfiltration`.
+파일 탐색기 **xdr → exfiltration → result.json**에서 counts와 decisions를 확인하고,
+방어전 **보너스 → 자료 빼돌리기를 잡아 냅니다 → 제출 전 확인**과 대조합니다.
+정상은 record, 명확한 복합 반출 신호는 block, 애매한 신호는 alert여야 합니다.
+정상 이벤트 차단과 알림만 있는 경보의 거부 후보 생성은 없어야 합니다.
+읽기는 `node xdr/exfiltration/read-alerts.mjs`, 알림·후보 기록은
+`node xdr/exfiltration/respond.mjs`입니다. 후자는 실행할 때 알림을 추가합니다.
+
+본편 설정의 `step: 12`, 운영 별칭 `https://choi-bujang-secret-vault-liard.vercel.app`,
+Git origin·로그인 issuer/audience/JWKS·일곱 허용 경로·원본 API·복구 경로·
+`judgeIssuer`를 기존 구현과 대조하고 보존했습니다. GitHub 저장소의 PUBLIC
+상태를 실제 조회했습니다. 새 저장점 배포는 커밋·푸시 후 운영 주소의 식별
+커밋과 대조하여 별도로 확인합니다. 본편 API·탐지기·화면·학습 DB·공개 가상
+메모·기존 XDR 자료는 보존했습니다. `src/attack-check.mjs`의 본편 실측·미실행
+구분도 보존합니다. `npm run bundle`은 본편 자기 점검이며 보너스 심판 판정이
+아닙니다. `bundle-notes.json`·`artifacts/submission.json`·비밀값·실명·메모 본문은
+커밋하지 않습니다.
+
 ## 보너스 xdr-05 저장점 (2026-10-14)
 
 `xdr/privilege/read-alerts.mjs`는 원본 수업용 Wazuh 경보 26건을 보존하면서

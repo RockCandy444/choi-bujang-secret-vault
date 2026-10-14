@@ -113,7 +113,7 @@ test('stage 12 build includes receipt UI while keeping notes empty and older con
   }
 });
 
-test('stage 12 bundle finishes without Buffer or binary response methods using GET/HEAD only', async () => {
+test('stage 12 read-only bundle runs with restricted responses and correlates every result to runner evidence', async () => {
   const previousFetch = globalThis.fetch;
   const requests = [];
   // Node's own Response.json() needs Buffer internally. Model the judge's
@@ -134,7 +134,10 @@ test('stage 12 bundle finishes without Buffer or binary response methods using G
       assert.ok(['GET', 'HEAD'].includes(method), `unsupported bundle method: ${method}`);
       assert.equal(url.protocol, 'https:');
       assert.equal(options.body, undefined);
-      requests.push({ path: url.pathname, method });
+      assert.match(options.alephEvidence?.caseId ?? '', /^[a-z0-9][a-z0-9_.-]{0,79}$/u);
+      assert.match(options.alephEvidence?.requestKey ?? '', /^[a-z0-9-]+$/u);
+      assert.ok(!Object.keys(options.headers ?? {}).some(name => /evidence|case.?id|attack.?id/iu.test(name)));
+      requests.push({ path: url.pathname, method, evidence: options.alephEvidence });
       if (url.pathname === '/data.json') return sandboxResponse({ notes: [] });
       if (url.pathname === '/aleph.json') return sandboxResponse(deploymentIdentity({
         VERCEL_GIT_PROVIDER: 'github', VERCEL_GIT_REPO_OWNER: 'RockCandy444',
@@ -165,10 +168,18 @@ test('stage 12 bundle finishes without Buffer or binary response methods using G
       globalThis.Buffer = undefined;
       results = await runAttackChecks({ ...config, expectedCommit: commit });
     } finally { globalThis.Buffer = previousBuffer; }
-    assert.equal(requests.length, 17);
+    assert.equal(requests.length, 19);
     assert.equal(results.length, 20);
     assert.deepEqual(results.filter(row => row.observed === 'not_run').map(row => row.attackId).sort(),
-      ['notes_write_requests', 'notice_write_requests', 'restore_anonymous_invalid_denied', 'device_approval_request'].sort());
+      ['notes_write_requests', 'notice_write_requests', 'restore_anonymous_invalid_denied', 'device_approval_request',
+        'authenticated_a_b_crud', 'original_api_and_privileges_unrun', 'student_notice_write_denied',
+        'verified_policy_and_b_recovery', 'post_recovery_regression', 'registered_device_and_request_signatures'].sort());
+    const measured = results.filter(row => row.observed !== 'not_run');
+    assert.equal(measured.length, 10);
+    assert.ok(measured.every(row => requests.some(request => request.evidence.caseId === row.attackId)));
+    assert.ok(results.filter(row => row.observed === 'not_run')
+      .every(row => !requests.some(request => request.evidence.caseId === row.attackId)));
+    assert.equal(new Set(requests.map(row => row.evidence.caseId + ':' + row.evidence.requestKey)).size, requests.length);
     assert.ok(!requests.some(row => ['/api/restore', '/api/device/request'].includes(row.path)));
     assert.equal(requests.filter(row => row.path.startsWith('/icons/') && row.method === 'HEAD').length, 2);
     assert.match(results.find(row => row.attackId === 'app_manifest_and_icons').observed, /실제 크기 검사 not_run/u);

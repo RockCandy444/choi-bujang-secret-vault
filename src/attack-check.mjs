@@ -20,7 +20,12 @@ export async function runAttackChecks(config) {
   // The stage 12 judge runs the bundle in a GET/HEAD-only sandbox.
   // Keep previous-stage exercises intact; never substitute GET for a write.
   const readOnlyBundle = config.step === 12;
+  // Official sample's runner metadata. Fetch ignores it on a normal server;
+  // the judge records it locally. Do not transmit it as a header or query.
+  const evidence = (caseId, requestKey) => readOnlyBundle
+    ? { alephEvidence: { caseId, requestKey } } : {};
   const response = await fetch(new URL('/data.json', app), {
+    ...evidence('anonymous_static_note_read', 'data'),
     redirect: 'error', signal: AbortSignal.timeout(10000),
   });
   let visible = false;
@@ -53,6 +58,7 @@ export async function runAttackChecks(config) {
       for (const [method, path, name] of routes) {
         if (readOnlyBundle && !['GET', 'HEAD'].includes(method)) continue;
         const checked = await fetch(new URL(path, app), { method, redirect: 'error',
+          ...evidence(`${invalid ? 'invalid_login' : 'anonymous'}_notes_denied`, name),
           signal: AbortSignal.timeout(10000), cache: 'no-store',
           ...(invalid ? { headers: { Authorization: 'Bearer invalid' } } : {}) });
         let denied = false;
@@ -78,9 +84,17 @@ export async function runAttackChecks(config) {
       observed: 'not_run' });
     const failures = [];
     if (response.status !== 200 || staticText.includes('SAMPLE_NOTE_1')) failures.push('/data.json');
+    if (readOnlyBundle) {
+      const markerData = await fetch(new URL('/data.json', app), {
+        ...evidence('static_stage1_marker_absent', 'data'), redirect: 'error',
+        signal: AbortSignal.timeout(10000), headers: { 'Cache-Control': 'no-cache' } });
+      if (markerData.status !== 200 || (await markerData.text()).includes('SAMPLE_NOTE_1')) failures.push('/data.json');
+    }
     let homeText = '';
     for (const path of ['/', '/index.html', '/aleph.json']) {
       const checked = await fetch(new URL(path, app), { redirect: 'error',
+        ...evidence(path === '/aleph.json' ? `deployment_stage${config.step}_identity`
+          : 'static_stage1_marker_absent', path === '/' ? 'home' : 'index'),
         signal: AbortSignal.timeout(10000), headers: { 'Cache-Control': 'no-cache' } });
       const text = await checked.text();
       if (path === '/' && checked.status === 200) homeText = text;
@@ -93,6 +107,12 @@ export async function runAttackChecks(config) {
           && checked.headers.get('x-content-type-options') !== 'nosniff'
           && !checked.headers.get('content-security-policy')) failures.push('/: 보안 헤더');
       if (path === '/aleph.json') {
+        if (readOnlyBundle) {
+          const markerIdentity = await fetch(new URL(path, app), {
+            ...evidence('static_stage1_marker_absent', 'identity'), redirect: 'error',
+            signal: AbortSignal.timeout(10000), headers: { 'Cache-Control': 'no-cache' } });
+          if (markerIdentity.status !== 200 || (await markerIdentity.text()).includes('SAMPLE_NOTE_1')) failures.push(path);
+        }
         let current = false;
         try {
           const identity = JSON.parse(text);
@@ -155,6 +175,7 @@ export async function runAttackChecks(config) {
       for (const invalid of [false, true]) {
         for (const method of (readOnlyBundle ? ['GET'] : ['GET', 'PUT'])) {
           const checked = await fetch(new URL('/api/notices', app), { method,
+            ...evidence('notice_anonymous_invalid_denied', invalid ? 'invalid' : 'anonymous'),
             redirect: 'error', signal: AbortSignal.timeout(10000), cache: 'no-store',
             ...(invalid ? { headers: { Authorization: 'Bearer invalid' } } : {}) });
           let denied = false;
@@ -205,6 +226,7 @@ export async function runAttackChecks(config) {
     if (config.step >= 11) {
       const assetObservations = [];
       const manifestResponse = await fetch(new URL('/manifest.webmanifest', app), {
+        ...evidence('app_manifest_and_icons', 'manifest'),
         redirect: 'error', signal: AbortSignal.timeout(10000), cache: 'no-store' });
       let manifestValid = false;
       try {
@@ -219,6 +241,7 @@ export async function runAttackChecks(config) {
       assetObservations.push(`manifest ${manifestResponse.status}: ${manifestValid ? '설정·화면 연결 확인' : '점검 실패'}`);
       for (const size of [192, 512]) {
         const iconResponse = await fetch(new URL(`/icons/app-${size}.png`, app), {
+          ...evidence('app_manifest_and_icons', `icon-${size}`),
           ...(readOnlyBundle ? { method: 'HEAD' } : {}),
           redirect: 'error', signal: AbortSignal.timeout(10000), cache: 'no-store' });
         if (readOnlyBundle) {
@@ -246,6 +269,7 @@ export async function runAttackChecks(config) {
         for (const [method, path] of [['GET', '/api/device/status'], ['POST', '/api/device/request']]) {
           if (readOnlyBundle && !['GET', 'HEAD'].includes(method)) continue;
           const checked = await fetch(new URL(path, app), { method, redirect: 'error',
+            ...evidence('device_connection_unavailable', invalid ? 'invalid' : 'anonymous'),
             signal: AbortSignal.timeout(10000), cache: 'no-store', headers: {
               Origin: app.origin, ...(invalid ? { Authorization: 'Bearer invalid' } : {}) } });
           let unavailable = false;
@@ -271,6 +295,7 @@ export async function runAttackChecks(config) {
     }
     if (config.step >= 12) {
       const checked = await fetch(new URL('/api/operations', app), { redirect: 'error',
+        ...evidence('operations_api_receipt', 'summary'),
         signal: AbortSignal.timeout(10000), cache: 'no-store' });
       let valid = false;
       let executed = null;
@@ -301,6 +326,7 @@ export async function runAttackChecks(config) {
         observed: valid ? `HTTP 200: 작전실 실측 ${executed}건·기대 일치 ${matched}건·미실행 ${unrun}건; 공식 41종 미실행`
           : `HTTP ${checked.status}: 작전실 응답·현재 커밋·실측 결과 점검 실패` });
       const asset = await fetch(new URL('/operations.js', app), { redirect: 'error',
+        ...evidence('operations_client_asset', 'script'),
         signal: AbortSignal.timeout(10000), cache: 'no-store' });
       const code = await asset.text();
       const safeAsset = asset.status === 200 && code.includes("fetch('/api/operations'")
@@ -308,6 +334,11 @@ export async function runAttackChecks(config) {
       results.push({ attackId: 'operations_client_asset', expected: '작전실 화면 스크립트 HTTP 200; 요약 API 연결·비밀값 없음',
         observed: safeAsset ? 'HTTP 200: 화면 스크립트·요약 API 연결 확인'
           : `HTTP ${asset.status}: 작전실 화면 스크립트 점검 실패` });
+    }
+    if (readOnlyBundle) {
+      for (const result of results) {
+        if (result.observed.startsWith('미실행:')) result.observed = 'not_run';
+      }
     }
     return results;
   }

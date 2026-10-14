@@ -220,10 +220,13 @@ export async function runAttackChecks(config) {
       for (const size of [192, 512]) {
         const iconResponse = await fetch(new URL(`/icons/app-${size}.png`, app), {
           redirect: 'error', signal: AbortSignal.timeout(10000), cache: 'no-store' });
-        const bytes = Buffer.from(await iconResponse.arrayBuffer());
+        const bytes = new Uint8Array(await iconResponse.arrayBuffer());
+        const pngHeader = [137, 80, 78, 71, 13, 10, 26, 10];
+        const uint32 = offset => bytes[offset] * 16777216 + bytes[offset + 1] * 65536
+          + bytes[offset + 2] * 256 + bytes[offset + 3];
         const valid = iconResponse.status === 200 && bytes.length >= 24
-          && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
-          && bytes.readUInt32BE(16) === size && bytes.readUInt32BE(20) === size;
+          && pngHeader.every((value, index) => bytes[index] === value)
+          && uint32(16) === size && uint32(20) === size;
         assetObservations.push(`icon ${size} ${iconResponse.status}: ${valid ? '크기 확인' : '점검 실패'}`);
       }
       results.push({ attackId: 'app_manifest_and_icons',

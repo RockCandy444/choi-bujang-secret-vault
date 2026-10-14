@@ -24,7 +24,19 @@ export async function runAttackChecks(config) {
   // the judge records it locally. Do not transmit it as a header or query.
   const evidence = (caseId, requestKey) => readOnlyBundle
     ? { alephEvidence: { caseId, requestKey } } : {};
-  const response = await fetch(new URL('/data.json', app), {
+  const observedRequests = new Map();
+  const probe = async (input, options) => {
+    const response = await globalThis.fetch(input, options);
+    if (readOnlyBundle) {
+      const { caseId, requestKey } = options.alephEvidence;
+      const records = observedRequests.get(caseId) ?? [];
+      records.push({ requestKey, ordinal: records.filter(row => row.requestKey === requestKey).length + 1,
+        status: response.status });
+      observedRequests.set(caseId, records);
+    }
+    return response;
+  };
+  const response = await probe(new URL('/data.json', app), {
     ...evidence('anonymous_static_note_read', 'data'),
     redirect: 'error', signal: AbortSignal.timeout(10000),
   });
@@ -57,7 +69,7 @@ export async function runAttackChecks(config) {
       const noteDenials = [];
       for (const [method, path, name] of routes) {
         if (readOnlyBundle && !['GET', 'HEAD'].includes(method)) continue;
-        const checked = await fetch(new URL(path, app), { method, redirect: 'error',
+        const checked = await probe(new URL(path, app), { method, redirect: 'error',
           ...evidence(`${invalid ? 'invalid_login' : 'anonymous'}_notes_denied`, name),
           signal: AbortSignal.timeout(10000), cache: 'no-store',
           ...(invalid ? { headers: { Authorization: 'Bearer invalid' } } : {}) });
@@ -85,14 +97,14 @@ export async function runAttackChecks(config) {
     const failures = [];
     if (response.status !== 200 || staticText.includes('SAMPLE_NOTE_1')) failures.push('/data.json');
     if (readOnlyBundle) {
-      const markerData = await fetch(new URL('/data.json', app), {
+      const markerData = await probe(new URL('/data.json', app), {
         ...evidence('static_stage1_marker_absent', 'data'), redirect: 'error',
         signal: AbortSignal.timeout(10000), headers: { 'Cache-Control': 'no-cache' } });
       if (markerData.status !== 200 || (await markerData.text()).includes('SAMPLE_NOTE_1')) failures.push('/data.json');
     }
     let homeText = '';
     for (const path of ['/', '/index.html', '/aleph.json']) {
-      const checked = await fetch(new URL(path, app), { redirect: 'error',
+      const checked = await probe(new URL(path, app), { redirect: 'error',
         ...evidence(path === '/aleph.json' ? `deployment_stage${config.step}_identity`
           : 'static_stage1_marker_absent', path === '/' ? 'home' : 'index'),
         signal: AbortSignal.timeout(10000), headers: { 'Cache-Control': 'no-cache' } });
@@ -108,7 +120,7 @@ export async function runAttackChecks(config) {
           && !checked.headers.get('content-security-policy')) failures.push('/: 보안 헤더');
       if (path === '/aleph.json') {
         if (readOnlyBundle) {
-          const markerIdentity = await fetch(new URL(path, app), {
+          const markerIdentity = await probe(new URL(path, app), {
             ...evidence('static_stage1_marker_absent', 'identity'), redirect: 'error',
             signal: AbortSignal.timeout(10000), headers: { 'Cache-Control': 'no-cache' } });
           if (markerIdentity.status !== 200 || (await markerIdentity.text()).includes('SAMPLE_NOTE_1')) failures.push(path);
@@ -174,7 +186,7 @@ export async function runAttackChecks(config) {
       const observations = [];
       for (const invalid of [false, true]) {
         for (const method of (readOnlyBundle ? ['GET'] : ['GET', 'PUT'])) {
-          const checked = await fetch(new URL('/api/notices', app), { method,
+          const checked = await probe(new URL('/api/notices', app), { method,
             ...evidence('notice_anonymous_invalid_denied', invalid ? 'invalid' : 'anonymous'),
             redirect: 'error', signal: AbortSignal.timeout(10000), cache: 'no-store',
             ...(invalid ? { headers: { Authorization: 'Bearer invalid' } } : {}) });
@@ -201,7 +213,7 @@ export async function runAttackChecks(config) {
     if (config.step >= 10) {
       const observations = [];
       for (const invalid of (readOnlyBundle ? [] : [false, true])) {
-        const checked = await fetch(new URL('/api/restore', app), { method: 'POST',
+        const checked = await probe(new URL('/api/restore', app), { method: 'POST',
           redirect: 'error', signal: AbortSignal.timeout(10000), cache: 'no-store',
           ...(invalid ? { headers: { Authorization: 'Bearer invalid' } } : {}) });
         let denied = false;
@@ -225,7 +237,7 @@ export async function runAttackChecks(config) {
     }
     if (config.step >= 11) {
       const assetObservations = [];
-      const manifestResponse = await fetch(new URL('/manifest.webmanifest', app), {
+      const manifestResponse = await probe(new URL('/manifest.webmanifest', app), {
         ...evidence('app_manifest_and_icons', 'manifest'),
         redirect: 'error', signal: AbortSignal.timeout(10000), cache: 'no-store' });
       let manifestValid = false;
@@ -240,7 +252,7 @@ export async function runAttackChecks(config) {
       } catch { /* Raw manifest data is never recorded. */ }
       assetObservations.push(`manifest ${manifestResponse.status}: ${manifestValid ? '설정·화면 연결 확인' : '점검 실패'}`);
       for (const size of [192, 512]) {
-        const iconResponse = await fetch(new URL(`/icons/app-${size}.png`, app), {
+        const iconResponse = await probe(new URL(`/icons/app-${size}.png`, app), {
           ...evidence('app_manifest_and_icons', `icon-${size}`),
           ...(readOnlyBundle ? { method: 'HEAD' } : {}),
           redirect: 'error', signal: AbortSignal.timeout(10000), cache: 'no-store' });
@@ -268,7 +280,7 @@ export async function runAttackChecks(config) {
       for (const invalid of [false, true]) {
         for (const [method, path] of [['GET', '/api/device/status'], ['POST', '/api/device/request']]) {
           if (readOnlyBundle && !['GET', 'HEAD'].includes(method)) continue;
-          const checked = await fetch(new URL(path, app), { method, redirect: 'error',
+          const checked = await probe(new URL(path, app), { method, redirect: 'error',
             ...evidence('device_connection_unavailable', invalid ? 'invalid' : 'anonymous'),
             signal: AbortSignal.timeout(10000), cache: 'no-store', headers: {
               Origin: app.origin, ...(invalid ? { Authorization: 'Bearer invalid' } : {}) } });
@@ -294,7 +306,7 @@ export async function runAttackChecks(config) {
         observed: '미실행: 운영 기기 승인·서명 확인 계약 없음; 등록 기기 열기와 세 서명 공격은 운영 연결 뒤 확인 필요' });
     }
     if (config.step >= 12) {
-      const checked = await fetch(new URL('/api/operations', app), { redirect: 'error',
+      const checked = await probe(new URL('/api/operations', app), { redirect: 'error',
         ...evidence('operations_api_receipt', 'summary'),
         signal: AbortSignal.timeout(10000), cache: 'no-store' });
       let valid = false;
@@ -325,7 +337,7 @@ export async function runAttackChecks(config) {
         expected: '현재 커밋·step 12의 작전실 API; 실측 5건·기대 일치 5건·미실행 17건; 운영 결과·41종 미실행',
         observed: valid ? `HTTP 200: 작전실 실측 ${executed}건·기대 일치 ${matched}건·미실행 ${unrun}건; 공식 41종 미실행`
           : `HTTP ${checked.status}: 작전실 응답·현재 커밋·실측 결과 점검 실패` });
-      const asset = await fetch(new URL('/operations.js', app), { redirect: 'error',
+      const asset = await probe(new URL('/operations.js', app), { redirect: 'error',
         ...evidence('operations_client_asset', 'script'),
         signal: AbortSignal.timeout(10000), cache: 'no-store' });
       const code = await asset.text();
@@ -338,6 +350,15 @@ export async function runAttackChecks(config) {
     if (readOnlyBundle) {
       for (const result of results) {
         if (result.observed.startsWith('미실행:')) result.observed = 'not_run';
+        if (result.observed === 'not_run') continue;
+        const records = observedRequests.get(result.attackId);
+        if (!records?.length) throw new Error('ATTACK_EVIDENCE_MISSING');
+        const selected = records[0];
+        // The judge accepts observable facts only, and one explicit receipt
+        // selector when the case sent multiple requests. Do not claim prose,
+        // counts, header validation, or a pass verdict in this field.
+        result.observed = (records.length > 1 ? `request=${selected.requestKey}#${selected.ordinal}: ` : '')
+          + `HTTP ${selected.status}`;
       }
     }
     return results;
@@ -346,7 +367,7 @@ export async function runAttackChecks(config) {
     const results = [{ attackId: 'anonymous_static_note_read', expected: '비로그인 공개 JSON에 메모 본문이 없음',
       observed: empty ? '비로그인 공개 JSON은 빈 메모 목록 (Supabase 권한 검사는 별도 필요)'
         : `공개 JSON 점검 실패 (HTTP ${response.status})` }];
-    const readResponse = await fetch(new URL('/api/notes', app), {
+    const readResponse = await probe(new URL('/api/notes', app), {
       redirect: 'error', signal: AbortSignal.timeout(10000),
     });
     let count = null;
@@ -367,7 +388,7 @@ export async function runAttackChecks(config) {
         ? 'HTTP 503: 서버 설정 미완료; 네 건 조회 미확인이며 인증 거부가 아님'
         : count === 4 ? 'HTTP 200: 비로그인 공개 API에서 네 건 조회; 공개 주소의 약점이 남음'
           : `HTTP ${readResponse.status}: 네 건 조회 미확인 (유효 메모 수 ${count ?? '미확인'})` });
-    const writeResponse = await fetch(new URL('/api/notes', app), {
+    const writeResponse = await probe(new URL('/api/notes', app), {
       method: 'POST', redirect: 'error', signal: AbortSignal.timeout(10000),
     });
     results.push({ attackId: 'public_api_write_rejected', expected: 'POST 요청을 HTTP 405로 거부',
@@ -377,7 +398,7 @@ export async function runAttackChecks(config) {
     const failures = [];
     if (response.status !== 200 || staticText.includes(marker)) failures.push('/data.json');
     for (const path of ['/', '/index.html', '/aleph.json']) {
-      const staticResponse = await fetch(new URL(path, app), {
+      const staticResponse = await probe(new URL(path, app), {
         redirect: 'error', signal: AbortSignal.timeout(10000),
         headers: { 'Cache-Control': 'no-cache' },
       });

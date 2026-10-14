@@ -119,6 +119,7 @@ test('stage 12 read-only bundle runs with restricted responses and correlates ev
   // Node's own Response.json() needs Buffer internally. Model the judge's
   // response facade directly so that removing Buffer tests student code only.
   const sandboxResponse = (data, { status = 200, headers = {} } = {}) => {
+    requests.at(-1).status = status;
     const text = () => typeof data === 'string' ? data
       : data instanceof Uint8Array ? new TextDecoder().decode(data) : JSON.stringify(data);
     return { status, ok: status >= 200 && status < 300,
@@ -182,7 +183,17 @@ test('stage 12 read-only bundle runs with restricted responses and correlates ev
     assert.equal(new Set(requests.map(row => row.evidence.caseId + ':' + row.evidence.requestKey)).size, requests.length);
     assert.ok(!requests.some(row => ['/api/restore', '/api/device/request'].includes(row.path)));
     assert.equal(requests.filter(row => row.path.startsWith('/icons/') && row.method === 'HEAD').length, 2);
-    assert.match(results.find(row => row.attackId === 'app_manifest_and_icons').observed, /실제 크기 검사 not_run/u);
+    assert.match(results.find(row => row.attackId === 'app_manifest_and_icons').expected, /실제 크기 검사는 not_run/u);
+    for (const row of measured) {
+      const match = /^(?:request=([a-z0-9-]+)#([1-9][0-9]*): )?HTTP ([1-5][0-9]{2})$/u.exec(row.observed);
+      assert.ok(match, 'observed must contain only a receipt selector and actual HTTP status');
+      const records = requests.filter(request => request.evidence.caseId === row.attackId);
+      assert.equal(Boolean(match[1]), records.length > 1);
+      const selected = match[1] ? records.filter(request => request.evidence.requestKey === match[1])[Number(match[2]) - 1]
+        : records[0];
+      assert.ok(selected);
+      assert.equal(Number(match[3]), selected.status);
+    }
     assert.ok(results.filter(row => row.observed !== 'not_run' && !row.observed.startsWith('미실행:'))
       .every(row => !/점검 실패|미확인/u.test(row.observed)));
   } finally { globalThis.fetch = previousFetch; }

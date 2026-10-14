@@ -1,0 +1,167 @@
+{
+  "schema": "aleph.xdr.result.v1",
+  "moduleKey": "privilege",
+  "decisions": [
+    {
+      "alertId": "pv-01",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "관리자 그룹의 의심스러운 추가·재등록"
+    },
+    {
+      "alertId": "pv-02",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "낯선 관리자 명령·세션 권한 전환"
+    },
+    {
+      "alertId": "pv-03",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "업무 시간 밖의 복합 권한 사용"
+    },
+    {
+      "alertId": "pv-04",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "관리자 그룹의 의심스러운 추가·재등록"
+    },
+    {
+      "alertId": "pv-05",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "관리자 그룹의 의심스러운 추가·재등록"
+    },
+    {
+      "alertId": "pv-06",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "낯선 관리자 명령·세션 권한 전환"
+    },
+    {
+      "alertId": "pv-07",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "업무 시간 밖의 복합 권한 사용"
+    },
+    {
+      "alertId": "pv-08",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "낯선 관리자 명령·세션 권한 전환"
+    },
+    {
+      "alertId": "pv-09",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "관리자 그룹의 의심스러운 추가·재등록"
+    },
+    {
+      "alertId": "pv-10",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "낯선 관리자 명령·세션 권한 전환"
+    },
+    {
+      "alertId": "pv-11",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "관리자 그룹의 의심스러운 추가·재등록"
+    },
+    {
+      "alertId": "pv-12",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "낯선 관리자 명령·세션 권한 전환"
+    },
+    {
+      "alertId": "pv-13",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "관리자 그룹의 의심스러운 추가·재등록"
+    },
+    {
+      "alertId": "pv-14",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "낯선 관리자 명령·세션 권한 전환"
+    },
+    {
+      "alertId": "pv-15",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "관리자 그룹의 의심스러운 추가·재등록"
+    },
+    {
+      "alertId": "pv-16",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "낯선 관리자 명령·세션 권한 전환"
+    },
+    {
+      "alertId": "pv-17",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "관리자 그룹의 의심스러운 추가·재등록"
+    },
+    {
+      "alertId": "pv-18",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "pv-19",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "pv-20",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "pv-21",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "pv-22",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "pv-23",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "pv-24",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "pv-25",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    },
+    {
+      "alertId": "pv-26",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "근거 패턴 없음"
+    }
+  ],
+  "counts": {
+    "block": 9,
+    "alert": 8,
+    "record": 9
+  }
+}

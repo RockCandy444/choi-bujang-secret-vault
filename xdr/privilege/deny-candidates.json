@@ -1,0 +1,140 @@
+{
+  "schema": "aleph.xdr.deny-candidates.v1",
+  "normalIdentities": [
+    "6515d6ab2336d3c86d5518c9edc14d8b1bf9f775ef505a85423bdd4a1421dc81",
+    "9fb124b8ff3cb4544d966c990609c54cecafacfa3edd022dc27fe1144925e566",
+    "61423278288af6645ca4e6e8d9d6854d5eea98f8ea8398678a46b9a0389a5ac3",
+    "6358b89943f7498412908250e322d18ac156ff73bd4ad1ea1472d41376ccb95a",
+    "2b34683d38dfd8a5449aa1c7e418df4d2537cf90f2c1d00922a03569561cff21",
+    "c5c4f882ae236ba18eb4f082c4b515a363477669b0e1c96b58724dc49f00a702",
+    "80c3961ba89a1c5dbddf9040a74f77ea726d739f4fc9bc65c62d6541359c876e"
+  ],
+  "rules": [
+    {
+      "ruleId": "xdr.privilege.dc996948945a775d19a1b5d526d219514eb5df4980eaffdf220acfa40ed2bf82",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIdentitySha256": "c488e65f2c783fbce23099177ea0885d5c1fba9c864e25cf6578934df24b4ca5",
+      "alertIds": [
+        "pv-01"
+      ],
+      "createdAt": "2026-09-27T00:15:06.000Z",
+      "expiresAt": "2026-09-27T00:30:06.000Z",
+      "pattern": "관리자 그룹의 의심스러운 추가·재등록",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.privilege.4d25bd941b0d9905b1e3e7ca53e88bb2e5c7e14345e4e9ffd19e652563921a21",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIdentitySha256": "c488e65f2c783fbce23099177ea0885d5c1fba9c864e25cf6578934df24b4ca5",
+      "alertIds": [
+        "pv-02"
+      ],
+      "createdAt": "2026-09-27T00:15:40.000Z",
+      "expiresAt": "2026-09-27T00:30:40.000Z",
+      "pattern": "낯선 관리자 명령·세션 권한 전환",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.privilege.17fa78eb276ba70566b99ebe969e707ec48bd6963b3d26ec323aac25ab200a73",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIdentitySha256": "c4dfb87194ab2c01b63c66c7fe0f7e6078009715a144275b86ec842a75d35615",
+      "alertIds": [
+        "pv-03"
+      ],
+      "createdAt": "2026-09-27T01:03:12.000Z",
+      "expiresAt": "2026-09-27T01:18:12.000Z",
+      "pattern": "업무 시간 밖의 복합 권한 사용",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.privilege.327bf3a0ccac3fb50364b52b9a1b04e3ab544aff47820d3ad4940a0c87e111c7",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIdentitySha256": "ce036f989861898be3609ff9652f9868173dab4bc142f0f359333548359b547b",
+      "alertIds": [
+        "pv-04"
+      ],
+      "createdAt": "2026-09-27T01:19:08.000Z",
+      "expiresAt": "2026-09-27T01:34:08.000Z",
+      "pattern": "관리자 그룹의 의심스러운 추가·재등록",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.privilege.f52f5324bd19f15a2fb06deb4b6cf8459623dff6c10bf29917563af48c0ddf2a",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIdentitySha256": "316c93b4fba99895c1be5f43179cbb652222e3dd0d45567e2a51fd8d970b6afd",
+      "alertIds": [
+        "pv-05"
+      ],
+      "createdAt": "2026-09-27T02:06:21.000Z",
+      "expiresAt": "2026-09-27T02:21:21.000Z",
+      "pattern": "관리자 그룹의 의심스러운 추가·재등록",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.privilege.c66ccbd4435978adedd2f9966528c77b8a1a755d3a923afc7b81a43994963c8e",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIdentitySha256": "a2f5485a186db0c5eb75966b0b5f871b839e1d7779807d4c24753524512d0bab",
+      "alertIds": [
+        "pv-06"
+      ],
+      "createdAt": "2026-09-27T04:08:02.000Z",
+      "expiresAt": "2026-09-27T04:23:02.000Z",
+      "pattern": "낯선 관리자 명령·세션 권한 전환",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.privilege.82b317fa3555def184fff6fb1d9c0b1c4cce376f520ee00c3f838c986ac9900f",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIdentitySha256": "6e19e0c95aabb269fd80cf0936c903b74c46f5d4d11aa02cdb4eb7fea1f22cf8",
+      "alertIds": [
+        "pv-07"
+      ],
+      "createdAt": "2026-09-27T05:16:29.000Z",
+      "expiresAt": "2026-09-27T05:31:29.000Z",
+      "pattern": "업무 시간 밖의 복합 권한 사용",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.privilege.48e9facbe981fec79434fca8354bd94c7933c6af2efb7d10401b418dc4ffe223",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIdentitySha256": "938d0c976ca98f10562a33fd362ec9fddecc86185a829875c9af7504b9e58619",
+      "alertIds": [
+        "pv-08"
+      ],
+      "createdAt": "2026-09-27T06:02:18.000Z",
+      "expiresAt": "2026-09-27T06:17:18.000Z",
+      "pattern": "낯선 관리자 명령·세션 권한 전환",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.privilege.39eb5c0bee20303a5fe62692ab9a0a00b8280f5bf92fcea64bc50d01555da9dc",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIdentitySha256": "2aa82156aa9435e9ec780d46db3bccf050dd0b35c18edae77b94df5cd6cf20ea",
+      "alertIds": [
+        "pv-09"
+      ],
+      "createdAt": "2026-09-27T06:33:07.000Z",
+      "expiresAt": "2026-09-27T06:48:07.000Z",
+      "pattern": "관리자 그룹의 의심스러운 추가·재등록",
+      "status": "expired_candidate"
+    }
+  ]
+}

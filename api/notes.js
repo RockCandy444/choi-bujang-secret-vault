@@ -3,6 +3,7 @@ import config from '../aleph.config.json' with { type: 'json' };
 import { createLoginVerifier } from '../src/verify-login.mjs';
 import { RESOURCE_IDS, RESOURCE_ID_HEADER } from '../src/resource-ids.mjs';
 import { denyApi } from '../src/api-denial.mjs';
+import { callNoteRecovery, isJudgeB } from '../src/note-recovery.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 let verifyLoginAuthorization;
@@ -90,6 +91,14 @@ export default async function handler(request, response) {
     } catch {
       return reject(400, 'INVALID_NOTE');
     }
+  }
+  if (request.method === 'POST' && isJudgeB(login)) {
+    // A new verified judge-B note and its private immutable backup are created
+    // in one DB transaction before the judge can tamper with the note.
+    const backedUp = await callNoteRecovery({ operation: 'create', login, id,
+      title: payload.title, content: payload.content, project: endpoint.origin, secret });
+    if (backedUp.error) return reject(backedUp.status, backedUp.error);
+    return response.status(201).json({ id: backedUp.result.id });
   }
   endpoint.searchParams.set('select', 'id,title,content,owner_id');
   if (request.method !== 'POST') {

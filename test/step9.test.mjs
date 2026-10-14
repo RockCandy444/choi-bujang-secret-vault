@@ -4,7 +4,7 @@ import { deploymentIdentity } from '../scripts/deployment-identity.mjs';
 import { runAttackChecks } from '../src/attack-check.mjs';
 import { readFile } from 'node:fs/promises';
 
-const config = JSON.parse(await readFile(new URL('../aleph.config.json', import.meta.url), 'utf8'));
+const config = { ...JSON.parse(await readFile(new URL('../aleph.config.json', import.meta.url), 'utf8')), step: 9 };
 
 test('stage 9 metadata preserves routes, original API and judge issuer', () => {
   assert.equal(config.step, 9);

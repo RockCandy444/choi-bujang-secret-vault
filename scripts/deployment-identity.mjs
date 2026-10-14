@@ -4,6 +4,13 @@ const SHA = /^[a-f0-9]{40}$/iu;
 const HOST = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.vercel\.app$/iu;
 
 export function deploymentIdentity(env, config) {
+  if (config?.step >= 10 && (!config.restoreRoute
+      || Object.keys(config.restoreRoute).sort().join(',') !== 'method,path,service'
+      || config.restoreRoute.service !== 'notes' || config.restoreRoute.method !== 'POST'
+      || config.restoreRoute.path !== '/api/restore'
+      || !config.allowedRoutes?.includes('POST /api/restore'))) {
+    throw new Error('10단계 배포 설정에 실제 notes POST 복구 경로가 필요합니다.');
+  }
   if (config?.step >= 5) {
     if (!Array.isArray(config.allowedRoutes) || !config.allowedRoutes.length
         || config.allowedRoutes.some(route => typeof route !== 'string'
@@ -27,7 +34,7 @@ export function deploymentIdentity(env, config) {
   if (env.VERCEL_GIT_PROVIDER !== 'github' || !OWNER.test(owner || '')
       || !REPO.test(repo || '') || repo === '.' || repo === '..'
       || repo.toLowerCase().endsWith('.git') || !SHA.test(commit || '')
-      || !HOST.test(host || '') || ![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(config?.step)
+      || !HOST.test(host || '') || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(config?.step)
       || typeof config.judgeIssuer !== 'string'
       || !/^https:\/\/[a-z0-9-]+\.up\.railway\.app\/defense\/judge$/iu.test(config.judgeIssuer)
       || (config.step === 1 && (typeof config.sampleMarker !== 'string'
@@ -43,6 +50,7 @@ export function deploymentIdentity(env, config) {
     judgeIssuer: config.judgeIssuer,
     ...(config.step >= 5 ? { originalApiUrl: config.originalApiUrl,
       allowedRoutes: [...config.allowedRoutes] } : {}),
+    ...(config.step >= 10 ? { restoreRoute: { ...config.restoreRoute } } : {}),
     ...(config.step === 1 ? { sampleMarker: config.sampleMarker } : {}),
   };
 }

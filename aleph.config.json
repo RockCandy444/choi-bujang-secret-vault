@@ -1,5 +1,5 @@
 {
-  "step": 9,
+  "step": 10,
   "repoUrl": "https://github.com/RockCandy444/choi-bujang-secret-vault",
   "publicAppUrl": "https://choi-bujang-secret-vault-liard.vercel.app",
   "judgeIssuer": "https://aleph-judge-production.up.railway.app/defense/judge",
@@ -14,8 +14,13 @@
     "GET /api/notes/:id",
     "PUT /api/notes/:id",
     "DELETE /api/notes/:id",
-    "GET /api/notices"
+    "GET /api/notices",
+    "POST /api/restore"
   ],
   "originalApiUrl": "https://buddejtjdpwxgthvfpnu.supabase.co/rest/v1/notes",
-  "restoreRoute": null
+  "restoreRoute": {
+    "service": "notes",
+    "method": "POST",
+    "path": "/api/restore"
+  }
 }

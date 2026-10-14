@@ -9,6 +9,10 @@
     "bundle": "node scripts/bundle.mjs",
     "decider:test": "node scripts/decider-test.mjs",
     "detect:test": "node scripts/detect-test.mjs",
+    "policy:preview": "node scripts/policy-preview.mjs",
+    "policy:restore": "node scripts/policy-restore.mjs",
+    "recovery:test": "node --test test/note-recovery.test.mjs",
+    "recovery:dbtest": "node scripts/test-note-recovery-db.mjs",
     "fixture:7": "node scripts/fixture-7.mjs",
     "xdr:run": "node scripts/xdr-run.mjs"
   },

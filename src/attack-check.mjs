@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 
 export async function runAttackChecks(config) {
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -35,7 +35,7 @@ export async function runAttackChecks(config) {
       // A non-JSON response is a failed check, not a successful deployment.
     }
   }
-  if ([3, 4, 5, 6, 7, 8, 9].includes(config.step)) {
+  if ([3, 4, 5, 6, 7, 8, 9, 10].includes(config.step)) {
     const results = [{ attackId: 'anonymous_static_note_read',
       expected: '정적 JSON은 HTTP 200의 빈 메모 목록',
       observed: response.status === 200 && empty ? 'HTTP 200: 정적 메모 0건'
@@ -83,10 +83,16 @@ export async function runAttackChecks(config) {
           current = identity.step === config.step && (config.step < 5
             || (identity.originalApiUrl === config.originalApiUrl
               && Array.isArray(identity.allowedRoutes) && identity.allowedRoutes.length > 0
-              && JSON.stringify(identity.allowedRoutes) === JSON.stringify(config.allowedRoutes)));
+              && JSON.stringify(identity.allowedRoutes) === JSON.stringify(config.allowedRoutes)))
+            && (config.step < 10 || (typeof identity.repoUrl === 'string'
+              && identity.repoUrl.toLowerCase() === config.repoUrl.toLowerCase()
+              && identity.judgeIssuer === config.judgeIssuer
+              && JSON.stringify(identity.restoreRoute) === JSON.stringify(config.restoreRoute)
+              && /^[a-f0-9]{40}$/u.test(identity.commit ?? '')
+              && (!config.expectedCommit || identity.commit === config.expectedCommit)));
         } catch { /* Missing identity fails. */ }
         results.push({ attackId: `deployment_stage${config.step}_identity`,
-          expected: `운영 배포 식별 파일에 step ${config.step} 기록${config.step >= 5 ? ' 및 원본 HTTPS 주소·허용 경로 일치' : ''}`,
+          expected: `운영 배포 식별 파일에 step ${config.step} 기록${config.step >= 5 ? ' 및 원본 HTTPS 주소·허용 경로 일치' : ''}${config.step >= 10 ? '; 복구 경로·저장소·발급자·현재 커밋 대조' : ''}`,
           observed: checked.status === 200 && current ? `HTTP 200: step ${config.step} 확인`
             : `HTTP ${checked.status}: ${config.step}단계 배포 식별 미확인` });
       }
@@ -98,7 +104,8 @@ export async function runAttackChecks(config) {
     results.push({ attackId: config.step >= 8 ? 'authenticated_a_b_crud' : 'authenticated_a_crud',
       expected: config.step === 7
         ? '운영 A 정상 CRUD; 복합 사건의 같은 주체 새 로그인 전 자료 차단·새 요청 재판정 허용'
-        : config.step >= 8 ? '운영 A/B 자기 메모 CRUD 허용 및 API의 상대 메모 거부'
+          : config.step >= 10 ? '운영 A/B 자기 CRUD 유지; 상대 접근 404·소유자 변경 400·다른 메모 보존'
+            : config.step >= 8 ? '운영 A/B 자기 메모 CRUD 허용 및 API의 상대 메모 거부'
           : '운영 A 로그인으로 추가·조회·수정·삭제 후 GET 404',
       observed: config.step === 7
         ? '미실행: 운영 A 인증 요청 없음; 같은 주체의 새 로그인 시각 검증 계약·자료 차단 연결 미확인'
@@ -111,7 +118,7 @@ export async function runAttackChecks(config) {
         ['foreign_note_access_denied', '운영 A/B의 상대 메모 GET·PUT·DELETE는 HTTP 404로 거부'],
         ['owner_change_denied', '운영 A/B의 owner_id 변경 PUT은 HTTP 400으로 거부'],
         ['owner_notes_preserved', '운영 상대 접근 검사 뒤 A/B 메모의 내용과 소유자 보존'],
-      ].filter(([attackId]) => config.step < 8 || attackId !== 'authenticated_b_crud')) {
+      ].filter(([attackId]) => config.step < 10 && (config.step < 8 || attackId !== 'authenticated_b_crud'))) {
         results.push({ attackId, expected,
           observed: '미실행: 운영 A/B 인증 요청을 보내지 않음; 로컬 검사 결과와 별도 확인 필요' });
       }
@@ -150,6 +157,31 @@ export async function runAttackChecks(config) {
       results.push({ attackId: 'student_notice_write_denied',
         expected: '인증된 일반 학생의 직접 공지 수정은 403, 자료 없음',
         observed: '미실행: 학생 인증 요청·운영 저장 권한 조회를 실행하지 않음' });
+    }
+    if (config.step >= 10) {
+      const observations = [];
+      for (const invalid of [false, true]) {
+        const checked = await fetch(new URL('/api/restore', app), { method: 'POST',
+          redirect: 'error', signal: AbortSignal.timeout(10000), cache: 'no-store',
+          ...(invalid ? { headers: { Authorization: 'Bearer invalid' } } : {}) });
+        let denied = false;
+        try {
+          const body = await checked.json();
+          denied = checked.status === 401 && body?.error === 'LOGIN_REQUIRED'
+            && Object.keys(body).join(',') === 'error'
+            && checked.headers.get('x-aleph-resource-id') === 'notes';
+        } catch { /* Never copy response source or restore metadata. */ }
+        observations.push(`${invalid ? '잘못된 인증' : '무로그인'} POST ${checked.status}: ${denied ? '자료 없음·메모 ID 확인' : '점검 실패'}`);
+      }
+      results.push({ attackId: 'restore_anonymous_invalid_denied',
+        expected: '무로그인·잘못된 인증의 복구 POST는 자료 없이 401; 원본·사본·감사 변경 없음',
+        observed: observations.join('; ') });
+      results.push({ attackId: 'verified_policy_and_b_recovery',
+        expected: '검증한 시험 정책 버전 복원; B의 변조·삭제 한 건 ID·소유자·해시 일치 및 감사 보존',
+        observed: '미실행: 이 자기 점검은 시험 정책·침해 기록이나 운영 B 인증·복원 요청을 사용하지 않음' });
+      results.push({ attackId: 'post_recovery_regression',
+        expected: '실제 복구 뒤 1~9단계 정상·금지 요청 재시험; 다른 메모·서비스 규칙·감사 보존',
+        observed: '미실행: 운영 복구를 실행하지 않음; 가상 검사·운영 사건 전달·기기 회수와 별도 확인 필요' });
     }
     return results;
   }

@@ -339,7 +339,7 @@ test('A creates, lists, reads, updates and deletes UUID notes with server-assign
     assert.ok(operations.filter(op => op.method !== 'POST').every(op => op.owner === subject));
     for (const row of rows) assert.deepEqual(store.get(row.id), { ...row, owner_id: null });
     assert.deepEqual(config.allowedRoutes, ['GET /api/my/notes', 'POST /api/notes',
-      'GET /api/notes/:id', 'PUT /api/notes/:id', 'DELETE /api/notes/:id', 'GET /api/notices']);
+      'GET /api/notes/:id', 'PUT /api/notes/:id', 'DELETE /api/notes/:id', 'GET /api/notices', 'POST /api/restore']);
   });
 });
 

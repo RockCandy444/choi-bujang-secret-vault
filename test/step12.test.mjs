@@ -113,7 +113,7 @@ test('stage 12 build includes receipt UI while keeping notes empty and older con
   }
 });
 
-test('stage 12 bundle finishes without Buffer using GET/HEAD only and marks write checks not_run', async () => {
+test('stage 12 bundle finishes without Buffer or binary response methods using GET/HEAD only', async () => {
   const previousFetch = globalThis.fetch;
   const requests = [];
   // Node's own Response.json() needs Buffer internally. Model the judge's
@@ -123,8 +123,7 @@ test('stage 12 bundle finishes without Buffer using GET/HEAD only and marks writ
       : data instanceof Uint8Array ? new TextDecoder().decode(data) : JSON.stringify(data);
     return { status, ok: status >= 200 && status < 300,
       headers: { get: key => Object.entries(headers).find(([name]) => name.toLowerCase() === key.toLowerCase())?.[1] ?? null },
-      json: async () => JSON.parse(text()), text: async () => text(),
-      arrayBuffer: async () => data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) };
+      json: async () => JSON.parse(text()), text: async () => text() };
   };
   try {
     globalThis.fetch = async (input, options = {}) => {
@@ -157,7 +156,8 @@ test('stage 12 bundle finishes without Buffer using GET/HEAD only and marks writ
         { status: 401, headers: { 'X-Aleph-Resource-Id': url.pathname === '/api/notices' ? 'instructor_notices' : 'notes' } });
       const path = url.pathname === '/' ? '/index.html' : url.pathname;
       return sandboxResponse(await readFile(new URL('../public' + path, import.meta.url)),
-        { headers: { 'X-Content-Type-Options': 'nosniff' } });
+        { headers: { 'X-Content-Type-Options': 'nosniff',
+          ...(path.startsWith('/icons/') ? { 'Content-Type': 'image/png' } : {}) } });
     };
     const previousBuffer = globalThis.Buffer;
     let results;
@@ -170,6 +170,8 @@ test('stage 12 bundle finishes without Buffer using GET/HEAD only and marks writ
     assert.deepEqual(results.filter(row => row.observed === 'not_run').map(row => row.attackId).sort(),
       ['notes_write_requests', 'notice_write_requests', 'restore_anonymous_invalid_denied', 'device_approval_request'].sort());
     assert.ok(!requests.some(row => ['/api/restore', '/api/device/request'].includes(row.path)));
+    assert.equal(requests.filter(row => row.path.startsWith('/icons/') && row.method === 'HEAD').length, 2);
+    assert.match(results.find(row => row.attackId === 'app_manifest_and_icons').observed, /실제 크기 검사 not_run/u);
     assert.ok(results.filter(row => row.observed !== 'not_run' && !row.observed.startsWith('미실행:'))
       .every(row => !/점검 실패|미확인/u.test(row.observed)));
   } finally { globalThis.fetch = previousFetch; }

@@ -219,7 +219,14 @@ export async function runAttackChecks(config) {
       assetObservations.push(`manifest ${manifestResponse.status}: ${manifestValid ? '설정·화면 연결 확인' : '점검 실패'}`);
       for (const size of [192, 512]) {
         const iconResponse = await fetch(new URL(`/icons/app-${size}.png`, app), {
+          ...(readOnlyBundle ? { method: 'HEAD' } : {}),
           redirect: 'error', signal: AbortSignal.timeout(10000), cache: 'no-store' });
+        if (readOnlyBundle) {
+          const png = iconResponse.status === 200
+            && iconResponse.headers.get('content-type')?.split(';')[0].trim().toLowerCase() === 'image/png';
+          assetObservations.push(`icon ${size} HEAD ${iconResponse.status}: ${png ? 'PNG 응답 헤더 확인; 실제 크기 검사 not_run' : '점검 실패'}`);
+          continue;
+        }
         const bytes = new Uint8Array(await iconResponse.arrayBuffer());
         const pngHeader = [137, 80, 78, 71, 13, 10, 26, 10];
         const uint32 = offset => bytes[offset] * 16777216 + bytes[offset + 1] * 65536
@@ -230,7 +237,9 @@ export async function runAttackChecks(config) {
         assetObservations.push(`icon ${size} ${iconResponse.status}: ${valid ? '크기 확인' : '점검 실패'}`);
       }
       results.push({ attackId: 'app_manifest_and_icons',
-        expected: '배포 화면의 manifest 연결·앱 이름·standalone·192/512 PNG 확인; 설치는 승인이 아님',
+        expected: readOnlyBundle
+          ? 'manifest 연결·앱 이름·standalone·아이콘 선언 확인; PNG HEAD 헤더 확인; 실제 크기 검사는 not_run'
+          : '배포 화면의 manifest 연결·앱 이름·standalone·192/512 PNG 확인; 설치는 승인이 아님',
         observed: assetObservations.join('; ') });
       const deviceObservations = [];
       for (const invalid of [false, true]) {

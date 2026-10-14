@@ -1,0 +1,16 @@
+{
+  "id": "/",
+  "name": "BYTE BACK 내 자료실",
+  "short_name": "내 자료실",
+  "description": "로그인한 사용자의 가상 자료실. 앱 설치는 기기 승인을 뜻하지 않습니다.",
+  "lang": "ko",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#101a28",
+  "theme_color": "#101a28",
+  "icons": [
+    { "src": "/icons/app-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

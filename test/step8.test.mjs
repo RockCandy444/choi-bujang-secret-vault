@@ -27,7 +27,7 @@ test('stage 8 isolated build keeps notes empty, emits current routes and preserv
     assert.deepEqual(identity.allowedRoutes, config.allowedRoutes);
     assert.ok(identity.allowedRoutes.includes('GET /api/notices'));
     assert.equal(identity.judgeIssuer, config.judgeIssuer);
-    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify({ ...config, step: 11 }));
+    await writeFile(join(directory, 'aleph.config.json'), JSON.stringify({ ...config, step: 12 }));
     assert.throws(() => execFileSync(process.execPath, ['scripts/build-public.mjs', '--local'],
       { cwd: directory, windowsHide: true, stdio: 'pipe' }));
   } finally {

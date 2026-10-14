@@ -184,7 +184,8 @@ test('missing, malformed, expired, tampered and wrong issuer/audience/role token
   });
 });
 
-async function mountPage(browserFetch, initialSession = null) {
+async function mountPage(browserFetch, initialSession = null, deviceFetch = async () =>
+  new Response(JSON.stringify({ approved: true, reason: 'fixture_registered' }))) {
   const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
   assert.ok(!html.includes('SUPABASE_SECRET_KEY'));
   const script = html.match(/<script type="module">([\s\S]*?)<\/script>/u)[1];
@@ -205,6 +206,8 @@ async function mountPage(browserFetch, initialSession = null) {
   const browserGlobal = { setTimeout() { return 0; }, clearTimeout() {},
     addEventListener(event, callback) { events[event] = callback; } };
   const authFetch = async (path, options) => {
+    // Local server-status fixture only; never represents an approved live device.
+    if (path.startsWith('/api/device/')) return deviceFetch(path, options);
     if (path !== '/api/auth') return browserFetch(path, options);
     if (options.method === 'DELETE') authSession = null;
     return new Response(JSON.stringify({ session: authSession ? { ...authSession,
@@ -212,6 +215,7 @@ async function mountPage(browserFetch, initialSession = null) {
   };
   const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
   await new AsyncFunction('document', 'fetch', 'globalThis', script)(document, authFetch, browserGlobal);
+  await new Promise(setImmediate);
   const changeSession = (event, session) => {
     authSession = session;
     if (event === 'SIGNED_OUT') return elements.get('#logout-button').listeners.click();
@@ -243,11 +247,70 @@ test('page makes no anonymous read, sends only the server-issued token, renders 
   assert.deepEqual(list.children.map(card => card.children.slice(0, 2).map(child => child.textContent)),
     suppliedRows.map(row => [row.title, row.content]));
   await page.changeSession('TOKEN_REFRESHED', session);
-  assert.equal(requests, 1);
+  await new Promise(setImmediate);
+  assert.equal(requests, 2);
   page.changeSession('SIGNED_OUT', null);
   assert.equal(list.children.length, 1);
   assert.match(list.children[0].textContent, /로그인 후/u);
   assert.equal(page.elements.get('#login-form').hidden, false);
+});
+
+test('device pending, unavailable or malformed status cannot request or display protected notes', async () => {
+  const session = { user: { id: subject }, access_token: (await authorization()).slice(7) };
+  for (const [code, state] of [[200, { approved: false, reason: 'device_not_registered' }],
+    [503, { approved: false, error: 'DEVICE_APPROVAL_NOT_CONFIGURED' }],
+    [200, { approved: 'true', reason: 'untrusted' }], [200, { approved: true, reason: 'untrusted', extra: true }]]) {
+    let notesRequested = 0;
+    const page = await mountPage(async () => { notesRequested++; throw new Error('No notes before approval'); }, session,
+      async () => new Response(JSON.stringify(state), { status: code }));
+    assert.equal(notesRequested, 0);
+    assert.equal(page.elements.get('#note-editor').hidden, true);
+    assert.match(page.elements.get('#notes').children[0].textContent, /기기 승인 전/u);
+    assert.equal(page.elements.get('#note-save').disabled, true);
+    await page.elements.get('#note-form').listeners.submit({ preventDefault() {} });
+    assert.equal(notesRequested, 0);
+  }
+});
+
+test('approval request receipt cannot open notes without a separate approved status', async () => {
+  const session = { user: { id: subject }, access_token: (await authorization()).slice(7) };
+  const paths = [];
+  let notesRequested = 0;
+  const page = await mountPage(async () => { notesRequested++; throw new Error('No approval'); }, session,
+    async (path, options) => {
+      paths.push(path);
+      assert.equal(options.cache, 'no-store');
+      return new Response(JSON.stringify({ approved: path.endsWith('request'), reason: 'fixture' }),
+        { status: path.endsWith('request') ? 202 : 200 });
+    });
+  page.elements.get('#device-request').listeners.click();
+  await new Promise(setImmediate);
+  assert.deepEqual(paths, ['/api/device/status', '/api/device/request', '/api/device/status']);
+  assert.equal(notesRequested, 0);
+  assert.equal(page.elements.get('#note-editor').hidden, true);
+});
+
+test('device recheck closes prior notes and late approval after logout cannot reopen them', async () => {
+  const session = { user: { id: subject }, access_token: (await authorization()).slice(7) };
+  let finish;
+  let calls = 0;
+  let noteCalls = 0;
+  const page = await mountPage(async () => { noteCalls++; return new Response('[]'); }, session,
+    async () => {
+      if (++calls === 1) return new Response(JSON.stringify({ approved: true, reason: 'fixture_registered' }));
+      return new Promise(resolve => { finish = resolve; });
+    });
+  assert.equal(noteCalls, 1);
+  assert.equal(page.elements.get('#note-editor').hidden, false);
+  page.elements.get('#device-check').listeners.click();
+  assert.equal(page.elements.get('#note-editor').hidden, true);
+  assert.match(page.elements.get('#notes').children[0].textContent, /기기 승인 전/u);
+  await page.changeSession('SIGNED_OUT', null);
+  finish(new Response(JSON.stringify({ approved: true, reason: 'fixture_registered' })));
+  await new Promise(setImmediate);
+  assert.equal(noteCalls, 1);
+  assert.equal(page.elements.get('#note-editor').hidden, true);
+  assert.match(page.elements.get('#notes').children[0].textContent, /로그인 후/u);
 });
 
 test('logout discards late note responses, and API rejection displays no notes', async () => {

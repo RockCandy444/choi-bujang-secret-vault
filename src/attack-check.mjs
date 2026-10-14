@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 
 export async function runAttackChecks(config) {
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -35,7 +35,7 @@ export async function runAttackChecks(config) {
       // A non-JSON response is a failed check, not a successful deployment.
     }
   }
-  if ([3, 4, 5, 6, 7, 8, 9, 10].includes(config.step)) {
+  if ([3, 4, 5, 6, 7, 8, 9, 10, 11].includes(config.step)) {
     const results = [{ attackId: 'anonymous_static_note_read',
       expected: '정적 JSON은 HTTP 200의 빈 메모 목록',
       observed: response.status === 200 && empty ? 'HTTP 200: 정적 메모 0건'
@@ -46,6 +46,7 @@ export async function runAttackChecks(config) {
       ['GET', `/api/notes/${id}`, 'item'], ['PUT', `/api/notes/${id}`, 'update'],
       ['DELETE', `/api/notes/${id}`, 'delete']];
     for (const invalid of [false, true]) {
+      const noteDenials = [];
       for (const [method, path, name] of routes) {
         const checked = await fetch(new URL(path, app), { method, redirect: 'error',
           signal: AbortSignal.timeout(10000), cache: 'no-store',
@@ -56,18 +57,24 @@ export async function runAttackChecks(config) {
           denied = checked.status === 401 && data?.error === 'LOGIN_REQUIRED'
             && Object.keys(data).join(',') === 'error';
         } catch { /* Never include raw response data. */ }
-        results.push({ attackId: `${invalid ? 'invalid_login' : 'anonymous'}_${name}_denied`,
+        if (config.step >= 11) noteDenials.push(`${name} ${checked.status}: ${denied ? '자료 없음' : '점검 실패'}`);
+        else results.push({ attackId: `${invalid ? 'invalid_login' : 'anonymous'}_${name}_denied`,
           expected: `${invalid ? '잘못된 인증' : '무로그인'} ${method} 요청은 자료 없이 HTTP 401 거부`,
           observed: denied ? 'HTTP 401: LOGIN_REQUIRED만 반환, 자료 없음'
             : `HTTP ${checked.status}: 인증 거부 점검 실패` });
       }
+      if (config.step >= 11) results.push({ attackId: `${invalid ? 'invalid_login' : 'anonymous'}_notes_denied`,
+        expected: `${invalid ? '잘못된 인증' : '무로그인'} 메모 목록·추가·한 건 GET·PUT·DELETE 다섯 요청은 자료 없이 401`,
+        observed: noteDenials.join('; ') });
     }
     const failures = [];
     if (response.status !== 200 || staticText.includes('SAMPLE_NOTE_1')) failures.push('/data.json');
+    let homeText = '';
     for (const path of ['/', '/index.html', '/aleph.json']) {
       const checked = await fetch(new URL(path, app), { redirect: 'error',
         signal: AbortSignal.timeout(10000), headers: { 'Cache-Control': 'no-cache' } });
       const text = await checked.text();
+      if (path === '/' && checked.status === 200) homeText = text;
       if (checked.status !== 200 || text.includes('SAMPLE_NOTE_1')) failures.push(path);
       if (config.step >= 5 && ['/', '/index.html'].includes(path)
           && /\bsb_publishable_[A-Za-z0-9_-]+|\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/u.test(text)) {
@@ -182,6 +189,56 @@ export async function runAttackChecks(config) {
       results.push({ attackId: 'post_recovery_regression',
         expected: '실제 복구 뒤 1~9단계 정상·금지 요청 재시험; 다른 메모·서비스 규칙·감사 보존',
         observed: '미실행: 운영 복구를 실행하지 않음; 가상 검사·운영 사건 전달·기기 회수와 별도 확인 필요' });
+    }
+    if (config.step >= 11) {
+      const assetObservations = [];
+      const manifestResponse = await fetch(new URL('/manifest.webmanifest', app), {
+        redirect: 'error', signal: AbortSignal.timeout(10000), cache: 'no-store' });
+      let manifestValid = false;
+      try {
+        const manifest = await manifestResponse.json();
+        manifestValid = manifestResponse.status === 200 && manifest?.name === 'BYTE BACK 내 자료실'
+          && manifest.start_url === '/' && manifest.scope === '/' && manifest.display === 'standalone'
+          && Array.isArray(manifest.icons) && [192, 512].every(size => manifest.icons.some(icon =>
+            icon.src === `/icons/app-${size}.png` && icon.sizes === `${size}x${size}` && icon.type === 'image/png'))
+          && homeText.includes('href="/manifest.webmanifest"')
+          && homeText.includes('id="device-request"') && homeText.includes('id="device-status"');
+      } catch { /* Raw manifest data is never recorded. */ }
+      assetObservations.push(`manifest ${manifestResponse.status}: ${manifestValid ? '설정·화면 연결 확인' : '점검 실패'}`);
+      for (const size of [192, 512]) {
+        const iconResponse = await fetch(new URL(`/icons/app-${size}.png`, app), {
+          redirect: 'error', signal: AbortSignal.timeout(10000), cache: 'no-store' });
+        const bytes = Buffer.from(await iconResponse.arrayBuffer());
+        const valid = iconResponse.status === 200 && bytes.length >= 24
+          && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+          && bytes.readUInt32BE(16) === size && bytes.readUInt32BE(20) === size;
+        assetObservations.push(`icon ${size} ${iconResponse.status}: ${valid ? '크기 확인' : '점검 실패'}`);
+      }
+      results.push({ attackId: 'app_manifest_and_icons',
+        expected: '배포 화면의 manifest 연결·앱 이름·standalone·192/512 PNG 확인; 설치는 승인이 아님',
+        observed: assetObservations.join('; ') });
+      const deviceObservations = [];
+      for (const invalid of [false, true]) {
+        for (const [method, path] of [['GET', '/api/device/status'], ['POST', '/api/device/request']]) {
+          const checked = await fetch(new URL(path, app), { method, redirect: 'error',
+            signal: AbortSignal.timeout(10000), cache: 'no-store', headers: {
+              Origin: app.origin, ...(invalid ? { Authorization: 'Bearer invalid' } : {}) } });
+          let unavailable = false;
+          try {
+            const state = await checked.json();
+            unavailable = checked.status === 503 && state?.approved === false
+              && state.error === 'DEVICE_APPROVAL_NOT_CONFIGURED'
+              && Object.keys(state).sort().join(',') === 'approved,error';
+          } catch { /* No identities or raw error data in the receipt. */ }
+          deviceObservations.push(`${invalid ? '잘못된 인증' : '무로그인'} ${method} ${checked.status}: ${unavailable ? '미준비·승인 안 됨' : '점검 실패'}`);
+        }
+      }
+      results.push({ attackId: 'device_connection_unavailable',
+        expected: '운영 계약 없는 승인 요청·상태 경로는 503·approved:false; 승인·접수 성공을 만들지 않음',
+        observed: deviceObservations.join('; ') });
+      results.push({ attackId: 'registered_device_and_request_signatures',
+        expected: '승인 전 자료 없음; 운영 등록 기기 화면·CRUD 유지; 서명 없음·경로/본문 변조 거부',
+        observed: '미실행: 운영 기기 승인·서명 확인 계약 없음; 등록 기기 열기와 세 서명 공격은 운영 연결 뒤 확인 필요' });
     }
     return results;
   }

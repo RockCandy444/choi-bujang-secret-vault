@@ -1,0 +1,124 @@
+{
+  "schema": "aleph.xdr.deny-candidates.v1",
+  "normalSources": [
+    "731a65f971309cbdc50bcccb3e690324d2b77130faa027abdc5196906fbf20b6",
+    "c16830af0a0cfee5b0c1796f9ec4cf9b8be72b5525e37e2d2aa62711898c4fde",
+    "d3f95d6da82cba2b4fd3c68a0942e0d3b28400d3b343b00e1ad95f78f7cec7ed",
+    "b8ce09ce89eeed936020a41b7cd3ce60c421bbd6f1d43988e2c846c5edb18cd1",
+    "c524fa07b74e0ade84d08807937c7aa2608c78a18e5d2c48bbd4b37db9d94d85"
+  ],
+  "rules": [
+    {
+      "ruleId": "xdr.persistence.25369cd21b2ba2ec89ea51b8c10928e889ab4f4f2d38ece0a0a68f0e806882b4",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "a9fcca236a6b9f61c542d12a29084c62c775cc1532a34885627c82dc9adcb0fc",
+      "alertIds": [
+        "ps-01"
+      ],
+      "createdAt": "2026-09-27T00:18:04.000Z",
+      "expiresAt": "2026-09-27T00:33:04.000Z",
+      "pattern": "서명 없는 서비스 생성·변경",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.persistence.e1038846cad7a747dabbbe3375ec6d0186b15e0ff1ba6756b212c5e366f14814",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "a9fcca236a6b9f61c542d12a29084c62c775cc1532a34885627c82dc9adcb0fc",
+      "alertIds": [
+        "ps-02"
+      ],
+      "createdAt": "2026-09-27T00:19:12.000Z",
+      "expiresAt": "2026-09-27T00:34:12.000Z",
+      "pattern": "낯선 예약 작업과 임시 실행 경로",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.persistence.8a6f351185fa703c2e10c9235ad4297aed2ab4b49108f7f392d51c252df7e024",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "4e50f98a756e96ccc6b1d8cabf50cfddc5f3820699a94c24d616875f0d104b24",
+      "alertIds": [
+        "ps-03"
+      ],
+      "createdAt": "2026-09-27T01:06:28.000Z",
+      "expiresAt": "2026-09-27T01:21:28.000Z",
+      "pattern": "평소 목록 외 시작 폴더 추가",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.persistence.3913af5f24208c38a4a9762bbdf6700a775e514da57cc6518ec485034a0d20d0",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "a823b83a25d1af618351e48458d23bce176ddc6382e43243053d22f5cabffba6",
+      "alertIds": [
+        "ps-04"
+      ],
+      "createdAt": "2026-09-27T01:22:03.000Z",
+      "expiresAt": "2026-09-27T01:37:03.000Z",
+      "pattern": "서명 없는 서비스 생성·변경",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.persistence.63c15ff66fbb7ebc1f536d83eae06ab016405956975b19b7f705aef1f304f1a7",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "cc0be94233c23c932cd002ed570a8042cdd892eac8bf908ad6ca35339a9aeecf",
+      "alertIds": [
+        "ps-05"
+      ],
+      "createdAt": "2026-09-27T02:09:17.000Z",
+      "expiresAt": "2026-09-27T02:24:17.000Z",
+      "pattern": "낯선 예약 작업과 임시 실행 경로",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.persistence.dd3bca73f0bb441bc01ef6d1772c64763b085406c040e2115992184d7f98c6bb",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "50091540ff68ace11551580569896d093ef61cdd0606d70fdd62bc0791657652",
+      "alertIds": [
+        "ps-06"
+      ],
+      "createdAt": "2026-09-27T04:07:45.000Z",
+      "expiresAt": "2026-09-27T04:22:45.000Z",
+      "pattern": "서명 없는 서비스 생성·변경",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.persistence.528f82b481149612d4aace4f599255521640c8a21a9bd8992f8f614738b3a357",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "04dd0e5c765d3cea1515121811fc54500a86343903223ec28e9ed91674a2c873",
+      "alertIds": [
+        "ps-07"
+      ],
+      "createdAt": "2026-09-27T05:14:08.000Z",
+      "expiresAt": "2026-09-27T05:29:08.000Z",
+      "pattern": "낯선 예약 작업과 임시 실행 경로",
+      "status": "expired_candidate"
+    },
+    {
+      "ruleId": "xdr.persistence.aca69d579d5832d025b9614b0dcc50d7157ed59dbe71d88c2099a23854d13065",
+      "action": "deny",
+      "active": false,
+      "match": null,
+      "sourceIpSha256": "e29246fcb566045080b5fd0c3bbd68e13341ba44c6ef1191b46e43bbe49fd70a",
+      "alertIds": [
+        "ps-08"
+      ],
+      "createdAt": "2026-09-27T06:28:31.000Z",
+      "expiresAt": "2026-09-27T06:43:31.000Z",
+      "pattern": "서명 없는 서비스 생성·변경",
+      "status": "expired_candidate"
+    }
+  ]
+}

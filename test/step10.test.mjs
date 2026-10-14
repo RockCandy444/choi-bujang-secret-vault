@@ -14,17 +14,19 @@ const environment = { VERCEL_GIT_PROVIDER: 'github', VERCEL_GIT_REPO_OWNER: 'Roc
 
 test('stage 10 identity matches the implemented recovery route without changing issuer or original API', () => {
   assert.equal(config.step, 10);
-  assert.deepEqual(config.restoreRoute, { service: 'notes', method: 'POST', path: '/api/restore' });
+  assert.equal(config.restoreRoute, '/api/restore');
   const identity = deploymentIdentity(environment, config);
   assert.deepEqual(identity.restoreRoute, config.restoreRoute);
   assert.equal(identity.judgeIssuer, config.judgeIssuer);
   assert.equal(identity.originalApiUrl, config.originalApiUrl);
   assert.deepEqual(identity.allowedRoutes, config.allowedRoutes);
   assert.ok(identity.allowedRoutes.includes('POST /api/restore'));
-  for (const invalid of [null, '/api/restore', { ...config.restoreRoute, path: '/api/notes' },
-    { ...config.restoreRoute, method: 'GET' }, { ...config.restoreRoute, extra: true }]) {
+  for (const invalid of [null, '', '/api/notes', 'POST /api/restore',
+    { service: 'notes', method: 'POST', path: '/api/restore' }]) {
     assert.throws(() => deploymentIdentity(environment, { ...config, restoreRoute: invalid }));
   }
+  assert.throws(() => deploymentIdentity(environment, { ...config,
+    allowedRoutes: config.allowedRoutes.filter(route => route !== 'POST /api/restore') }));
 });
 
 test('stage 10 isolated deployment keeps both static note sources empty and records recovery metadata', async () => {
@@ -40,7 +42,7 @@ test('stage 10 isolated deployment keeps both static note sources empty and reco
     const identity = JSON.parse(await readFile(join(directory, 'public/aleph.json'), 'utf8'));
     assert.equal(identity.step, 10);
     assert.equal(identity.commit, environment.VERCEL_GIT_COMMIT_SHA);
-    assert.deepEqual(identity.restoreRoute, config.restoreRoute);
+    assert.equal(identity.restoreRoute, '/api/restore');
     assert.equal(identity.judgeIssuer, config.judgeIssuer);
     assert.deepEqual(JSON.parse(await readFile(new URL('../data.json', import.meta.url), 'utf8')), { notes: [] });
   } finally { await rm(directory, { recursive: true, force: true }); }
@@ -49,7 +51,7 @@ test('stage 10 isolated deployment keeps both static note sources empty and reco
 test('stage 10 self-check records only actual anonymous/invalid requests and retains recovery as unrun', async () => {
   const originalFetch = globalThis.fetch;
   try {
-    for (const scenario of ['ok', 'old_commit', 'wrong_restore', 'leaked_denial']) {
+    for (const scenario of ['ok', 'old_commit', 'wrong_restore', 'object_restore', 'leaked_denial']) {
       const requests = [];
       globalThis.fetch = async (input, options) => {
         const url = new URL(input);
@@ -66,7 +68,8 @@ test('stage 10 self-check records only actual anonymous/invalid requests and ret
         }
         const identity = deploymentIdentity(environment, config);
         if (scenario === 'old_commit') identity.commit = 'b'.repeat(40);
-        if (scenario === 'wrong_restore') identity.restoreRoute.path = '/other';
+        if (scenario === 'wrong_restore') identity.restoreRoute = '/other';
+        if (scenario === 'object_restore') identity.restoreRoute = { service:'notes', method:'POST', path:'/api/restore' };
         return new Response(JSON.stringify(url.pathname === '/data.json' ? { notes: [] }
           : url.pathname === '/aleph.json' ? identity : {}), { headers: { 'X-Content-Type-Options': 'nosniff' } });
       };
@@ -77,7 +80,7 @@ test('stage 10 self-check records only actual anonymous/invalid requests and ret
       assert.equal(new Set(results.map(item => item.attackId)).size, 20);
       assert.equal(results.filter(item => item.observed.startsWith('미실행:')).length, 5);
       const identity = results.find(item => item.attackId === 'deployment_stage10_identity');
-      assert.equal(identity.observed.includes('미확인'), ['old_commit', 'wrong_restore'].includes(scenario));
+      assert.equal(identity.observed.includes('미확인'), ['old_commit', 'wrong_restore', 'object_restore'].includes(scenario));
       const restore = results.find(item => item.attackId === 'restore_anonymous_invalid_denied');
       assert.equal(restore.observed.includes('점검 실패'), scenario === 'leaked_denial');
       assert.ok(results.find(item => item.attackId === 'verified_policy_and_b_recovery').observed.startsWith('미실행:'));

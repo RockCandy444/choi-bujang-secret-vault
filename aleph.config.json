@@ -18,9 +18,5 @@
     "POST /api/restore"
   ],
   "originalApiUrl": "https://buddejtjdpwxgthvfpnu.supabase.co/rest/v1/notes",
-  "restoreRoute": {
-    "service": "notes",
-    "method": "POST",
-    "path": "/api/restore"
-  }
+  "restoreRoute": "/api/restore"
 }

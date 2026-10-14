@@ -16,10 +16,10 @@ Supabase Auth 로그인·로그아웃과 가상 메모 CRUD를 보존하고, 모
 기록과 시험 파일이 없으면 중단하고, 복구 API는 사본 없음·해시 불일치를 거부합니다.
 
 설정은 `step: 10`, 기존 여섯 허용 경로에 `POST /api/restore`를 추가했으며
-`restoreRoute`는 `{service:"notes",method:"POST",path:"/api/restore"}`입니다.
+`restoreRoute`는 실제 복구 경로의 문자열 `"/api/restore"`입니다.
 Git origin·운영 주소·로그인 issuer/audience/JWKS·원본 `/rest/v1/notes`와
-`judgeIssuer`는 이전 저장점 값과 일치합니다. 이 복구 경로 정보의 심판 접수
-호환 여부는 실제 심판 판정에서 확인해야 합니다. 배포와 묶음 결과는 커밋 뒤
+`judgeIssuer`는 이전 저장점 값과 일치합니다. 서비스 `notes`와 메서드 `POST`는
+API와 허용 경로에 기록하며 복구 경로 필드에 객체로 넣지 않습니다. 배포와 묶음 결과는 커밋 뒤
 실제로 조회한 식별 파일과 `artifacts/submission.json`에서 대조합니다.
 
 2026-10-14 실행한 전체 로컬 검사 **135건**, 격리 PostgreSQL의 가상 복구
@@ -37,6 +37,21 @@ Git origin·운영 주소·로그인 issuer/audience/JWKS·원본 `/rest/v1/note
 정상은 현재 커밋·step 10·복구 경로 일치와 정적 메모 0건, 금지 요청은
 무로그인·잘못된 인증의 `POST /api/restore`가 자료 없이 401입니다.
 미실행 항목이 남으므로 10단계 전체 검증 완료로 보고하지 않습니다.
+
+### 첫 심판 실패 뒤 복구 경로 형식 수정
+
+2026-10-14 사이드바의 첫 제출 결과는 커밋 `dda914b97fb6`, **48/100**,
+`S10_BACKUP_UNVERIFIED`이며 다섯 조건 중 `restoreRoute`가 실패했습니다.
+같은 화면의 삭제 복구와 복구 뒤 대표 공격은 통과로 표시됐습니다.
+이 기록은 심판 화면의 표시이며 로컬 연습 결과로 만들어 낸 판정이 아닙니다.
+
+시작 틀 제작자의 [공개 통과 표본](https://github.com/ChoiTimo/byteback-sample-pass/blob/main/aleph.config.json)은
+`restoreRoute`에 문자열 경로를 사용합니다. 첫 제출의 객체 형식을 실제 API의
+문자열 `"/api/restore"`로 수정하고 배포 식별도 같은 문자열을 내보내도록 했습니다.
+관련 검사는 객체 형식·다른 경로·POST 허용 경로 누락을 거부하도록 갱신했습니다.
+운영 판정기·복구 API·DB 함수·사본·감사는 수정하지 않았습니다.
+이번 형식 수정의 통과 여부는 새 커밋으로 재제출한 실제 심판 결과에서 확인합니다.
+실제 시험 정책 복구의 미실행 표기는 유지합니다.
 
 ## 10단계 제작 4: 복구 뒤 1~9단계 재시험 순서
 

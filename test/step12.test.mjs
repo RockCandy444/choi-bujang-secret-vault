@@ -7,6 +7,8 @@ import { tmpdir } from 'node:os';
 import { operationsSummary } from '../src/operations.mjs';
 import handler from '../api/operations.js';
 import { RULE_IDS } from '../src/decider.mjs';
+import { runAttackChecks } from '../src/attack-check.mjs';
+import { deploymentIdentity } from '../scripts/deployment-identity.mjs';
 
 const config = JSON.parse(await readFile(new URL('../aleph.config.json', import.meta.url), 'utf8'));
 const commit = 'a'.repeat(40);
@@ -109,4 +111,51 @@ test('stage 12 build includes receipt UI while keeping notes empty and older con
     assert.ok(resolve(directory).startsWith(`${resolve(tmpdir())}${sep}aleph-step12-`));
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+test('stage 12 bundle finishes with GET/HEAD only and marks every write check not_run', async () => {
+  const previousFetch = globalThis.fetch;
+  const requests = [];
+  try {
+    globalThis.fetch = async (input, options = {}) => {
+      const url = new URL(input);
+      const method = options.method ?? 'GET';
+      // Reproduce the judge restriction at the network boundary, not just by
+      // inspecting source text. Any write makes the complete check fail.
+      assert.ok(['GET', 'HEAD'].includes(method), `unsupported bundle method: ${method}`);
+      assert.equal(url.protocol, 'https:');
+      assert.equal(options.body, undefined);
+      requests.push({ path: url.pathname, method });
+      if (url.pathname === '/data.json') return Response.json({ notes: [] });
+      if (url.pathname === '/aleph.json') return Response.json(deploymentIdentity({
+        VERCEL_GIT_PROVIDER: 'github', VERCEL_GIT_REPO_OWNER: 'RockCandy444',
+        VERCEL_GIT_REPO_SLUG: 'choi-bujang-secret-vault', VERCEL_GIT_COMMIT_SHA: commit,
+        VERCEL_URL: 'stage12-test.vercel.app',
+      }, config));
+      if (url.pathname === '/api/operations') return Response.json({
+        schema: 'aleph.operations.v1', step: 12, commit,
+        checks: Array.from({ length: 22 }, (_, index) => index < 5
+          ? { state: 'matched', requestId: '00000000-0000-4000-8000-000000000000', checkedAt: '2026-10-14T00:00:00.000Z' }
+          : { state: 'unrun', requestId: null, checkedAt: null }),
+        counts: { executed: 5, matched: 5, failed: 0, unrun: 17 },
+        detection: { state: 'unrun' }, revocation: { state: 'unrun' }, recovery: { state: 'unrun' },
+        officialAttacks: { state: 'unrun', total: 41, passed: null },
+      });
+      if (url.pathname === '/api/device/status') return Response.json(
+        { approved: false, error: 'DEVICE_APPROVAL_NOT_CONFIGURED' }, { status: 503 });
+      if (url.pathname.startsWith('/api/')) return Response.json({ error: 'LOGIN_REQUIRED' },
+        { status: 401, headers: { 'X-Aleph-Resource-Id': url.pathname === '/api/notices' ? 'instructor_notices' : 'notes' } });
+      const path = url.pathname === '/' ? '/index.html' : url.pathname;
+      return new Response(await readFile(new URL('../public' + path, import.meta.url)),
+        { headers: { 'X-Content-Type-Options': 'nosniff' } });
+    };
+    const results = await runAttackChecks({ ...config, expectedCommit: commit });
+    assert.equal(requests.length, 17);
+    assert.equal(results.length, 20);
+    assert.deepEqual(results.filter(row => row.observed === 'not_run').map(row => row.attackId).sort(),
+      ['notes_write_requests', 'notice_write_requests', 'restore_anonymous_invalid_denied', 'device_approval_request'].sort());
+    assert.ok(!requests.some(row => ['/api/restore', '/api/device/request'].includes(row.path)));
+    assert.ok(results.filter(row => row.observed !== 'not_run' && !row.observed.startsWith('미실행:'))
+      .every(row => !/점검 실패|미확인/u.test(row.observed)));
+  } finally { globalThis.fetch = previousFetch; }
 });

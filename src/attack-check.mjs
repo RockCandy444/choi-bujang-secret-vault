@@ -17,6 +17,9 @@ export async function runAttackChecks(config) {
   if (config.step === 1 && (typeof config.sampleMarker !== 'string' || !config.sampleMarker)) {
     throw new Error('가상 메모의 확인 표시를 넣어 주세요.');
   }
+  // The stage 12 judge runs the bundle in a GET/HEAD-only sandbox.
+  // Keep previous-stage exercises intact; never substitute GET for a write.
+  const readOnlyBundle = config.step === 12;
   const response = await fetch(new URL('/data.json', app), {
     redirect: 'error', signal: AbortSignal.timeout(10000),
   });
@@ -48,6 +51,7 @@ export async function runAttackChecks(config) {
     for (const invalid of [false, true]) {
       const noteDenials = [];
       for (const [method, path, name] of routes) {
+        if (readOnlyBundle && !['GET', 'HEAD'].includes(method)) continue;
         const checked = await fetch(new URL(path, app), { method, redirect: 'error',
           signal: AbortSignal.timeout(10000), cache: 'no-store',
           ...(invalid ? { headers: { Authorization: 'Bearer invalid' } } : {}) });
@@ -64,9 +68,14 @@ export async function runAttackChecks(config) {
             : `HTTP ${checked.status}: 인증 거부 점검 실패` });
       }
       if (config.step >= 11) results.push({ attackId: `${invalid ? 'invalid_login' : 'anonymous'}_notes_denied`,
-        expected: `${invalid ? '잘못된 인증' : '무로그인'} 메모 목록·추가·한 건 GET·PUT·DELETE 다섯 요청은 자료 없이 401`,
+        expected: readOnlyBundle
+          ? `${invalid ? '잘못된 인증' : '무로그인'} 메모 목록·한 건 GET 두 요청은 자료 없이 401`
+          : `${invalid ? '잘못된 인증' : '무로그인'} 메모 목록·추가·한 건 GET·PUT·DELETE 다섯 요청은 자료 없이 401`,
         observed: noteDenials.join('; ') });
     }
+    if (readOnlyBundle) results.push({ attackId: 'notes_write_requests',
+      expected: '무로그인·잘못된 인증의 메모 POST·PUT·DELETE는 자료 없이 401',
+      observed: 'not_run' });
     const failures = [];
     if (response.status !== 200 || staticText.includes('SAMPLE_NOTE_1')) failures.push('/data.json');
     let homeText = '';
@@ -144,7 +153,7 @@ export async function runAttackChecks(config) {
         observed: '미실행: 원본 anon 키 요청·학습 DB 권한 검사를 실행하지 않음' });
       const observations = [];
       for (const invalid of [false, true]) {
-        for (const method of ['GET', 'PUT']) {
+        for (const method of (readOnlyBundle ? ['GET'] : ['GET', 'PUT'])) {
           const checked = await fetch(new URL('/api/notices', app), { method,
             redirect: 'error', signal: AbortSignal.timeout(10000), cache: 'no-store',
             ...(invalid ? { headers: { Authorization: 'Bearer invalid' } } : {}) });
@@ -159,15 +168,18 @@ export async function runAttackChecks(config) {
         }
       }
       results.push({ attackId: 'notice_anonymous_invalid_denied',
-        expected: '무로그인·잘못된 인증의 공지 GET·PUT은 401, 자료 없음·공지 자원 ID 표시',
+        expected: readOnlyBundle ? '무로그인·잘못된 인증의 공지 GET은 401, 자료 없음·공지 자원 ID 표시'
+          : '무로그인·잘못된 인증의 공지 GET·PUT은 401, 자료 없음·공지 자원 ID 표시',
         observed: observations.join('; ') });
+      if (readOnlyBundle) results.push({ attackId: 'notice_write_requests',
+        expected: '무로그인·잘못된 인증의 공지 PUT은 401, 자료 없음', observed: 'not_run' });
       results.push({ attackId: 'student_notice_write_denied',
         expected: '인증된 일반 학생의 직접 공지 수정은 403, 자료 없음',
         observed: '미실행: 학생 인증 요청·운영 저장 권한 조회를 실행하지 않음' });
     }
     if (config.step >= 10) {
       const observations = [];
-      for (const invalid of [false, true]) {
+      for (const invalid of (readOnlyBundle ? [] : [false, true])) {
         const checked = await fetch(new URL('/api/restore', app), { method: 'POST',
           redirect: 'error', signal: AbortSignal.timeout(10000), cache: 'no-store',
           ...(invalid ? { headers: { Authorization: 'Bearer invalid' } } : {}) });
@@ -182,7 +194,7 @@ export async function runAttackChecks(config) {
       }
       results.push({ attackId: 'restore_anonymous_invalid_denied',
         expected: '무로그인·잘못된 인증의 복구 POST는 자료 없이 401; 원본·사본·감사 변경 없음',
-        observed: observations.join('; ') });
+        observed: readOnlyBundle ? 'not_run' : observations.join('; ') });
       results.push({ attackId: 'verified_policy_and_b_recovery',
         expected: '검증한 시험 정책 버전 복원; B의 변조·삭제 한 건 ID·소유자·해시 일치 및 감사 보존',
         observed: '미실행: 이 자기 점검은 시험 정책·침해 기록이나 운영 B 인증·복원 요청을 사용하지 않음' });
@@ -220,6 +232,7 @@ export async function runAttackChecks(config) {
       const deviceObservations = [];
       for (const invalid of [false, true]) {
         for (const [method, path] of [['GET', '/api/device/status'], ['POST', '/api/device/request']]) {
+          if (readOnlyBundle && !['GET', 'HEAD'].includes(method)) continue;
           const checked = await fetch(new URL(path, app), { method, redirect: 'error',
             signal: AbortSignal.timeout(10000), cache: 'no-store', headers: {
               Origin: app.origin, ...(invalid ? { Authorization: 'Bearer invalid' } : {}) } });
@@ -234,8 +247,12 @@ export async function runAttackChecks(config) {
         }
       }
       results.push({ attackId: 'device_connection_unavailable',
-        expected: '운영 계약 없는 승인 요청·상태 경로는 503·approved:false; 승인·접수 성공을 만들지 않음',
+        expected: readOnlyBundle ? '운영 계약 없는 상태 GET은 503·approved:false; 승인을 만들지 않음'
+          : '운영 계약 없는 승인 요청·상태 경로는 503·approved:false; 승인·접수 성공을 만들지 않음',
         observed: deviceObservations.join('; ') });
+      if (readOnlyBundle) results.push({ attackId: 'device_approval_request',
+        expected: '운영 계약 없는 승인 POST는 503·approved:false; 접수 성공을 만들지 않음',
+        observed: 'not_run' });
       results.push({ attackId: 'registered_device_and_request_signatures',
         expected: '승인 전 자료 없음; 운영 등록 기기 화면·CRUD 유지; 서명 없음·경로/본문 변조 거부',
         observed: '미실행: 운영 기기 승인·서명 확인 계약 없음; 등록 기기 열기와 세 서명 공격은 운영 연결 뒤 확인 필요' });

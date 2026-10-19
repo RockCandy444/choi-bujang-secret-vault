@@ -1,0 +1,619 @@
+{
+  "schema": "aleph.on.curriculum.v1",
+  "version": "0.6.0-r4-official",
+  "basis": "PLAN.md v0.2 / channel 675-677, 693 / channel 1259·1278(R4 의미 판정 판, 새 R4 접수부터 명시 선택, 소급 적용 없음)",
+  "criteriaStatus": "proposal",
+  "stagePoints": null,
+  "rankingCutoff": null,
+  "tieBreakStatus": "first_pass_server_received_at",
+  "competitionBasis": "official_pass_and_first_server_received_at",
+  "aiRole": "mandatory_criterion_decision",
+  "aiRequiredForPass": true,
+  "aiRequiredForProgress": true,
+  "aiProducesRanking": false,
+  "postCutoffRecognition": null,
+  "recommendedDatesEnforced": false,
+  "stages": [
+    {
+      "id": 13,
+      "title": "세 메뉴와 로그인·기기 상태",
+      "recommendedDate": "2026-10-19",
+      "mode": "machine_and_required_meaning",
+      "criteriaStatus": "proposal",
+      "checks": [
+        {
+          "id": "student-source-changed",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "three-menus",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "student-identity-updates",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "student-failure-visible",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q13.failure_visible"
+          ]
+        },
+        {
+          "id": "identity-after-reload",
+          "required": true,
+          "confirmation": "machine"
+        }
+      ],
+      "provided": "공통 메뉴와 상태 API 어댑터 자리. 실제 로그인·기기 연결은 아직 구현하지 않았습니다.",
+      "student": "실제 사용자·기기·세션 표시, 화면 이동과 상태 재조회",
+      "runtimeStatus": "implemented_local",
+      "checkerVersion": "on-pc-13-0.4",
+      "rubricVersion": "on-13-proposal-0.4"
+    },
+    {
+      "id": 14,
+      "title": "업무 앱과 접속 판정·상태",
+      "recommendedDate": "2026-10-20",
+      "mode": "machine_and_required_meaning",
+      "criteriaStatus": "proposal",
+      "checks": [
+        {
+          "id": "student-source-changed",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "server-decisions-distinct",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "decision-reason-visible",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "unknown-not-allow",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q14.unknown_not_allowed"
+          ]
+        },
+        {
+          "id": "failure-not-allow",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q14.failure_shown",
+            "q14.failure_not_allowed"
+          ]
+        }
+      ],
+      "provided": "업무 앱 목록과 서버 접속 판정 연결",
+      "student": "서버의 허용·거부·추가 확인·확인 불가를 구분해 표시",
+      "runtimeStatus": "implemented_local",
+      "checkerVersion": "on-pc-14-0.4",
+      "rubricVersion": "on-14-proposal-0.4"
+    },
+    {
+      "id": 15,
+      "title": "접속 기록과 기존 XDR 사건",
+      "recommendedDate": "2026-10-21",
+      "mode": "machine_and_required_meaning",
+      "criteriaStatus": "proposal",
+      "checks": [
+        {
+          "id": "student-source-changed",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "event_scope",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q15.event_kind"
+          ]
+        },
+        {
+          "id": "event_time",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q15.event_time"
+          ]
+        },
+        {
+          "id": "event_filter",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "required": true,
+          "id": "event_detail",
+          "confirmation": "machine"
+        },
+        {
+          "required": true,
+          "id": "events-refresh-replaces",
+          "confirmation": "machine"
+        },
+        {
+          "required": true,
+          "id": "events-empty-error-distinct",
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q15.empty_shown",
+            "q15.empty_not_error",
+            "q15.error_shown"
+          ]
+        }
+      ],
+      "provided": "기존 접속·XDR 읽기 연결 코드",
+      "student": "같은 사용자·기기·사건의 기록, 필터와 상세 화면",
+      "runtimeStatus": "implemented_local",
+      "checkerVersion": "on-pc-15-0.4",
+      "rubricVersion": "on-15-proposal-0.4",
+      "verificationScope": "synthetic_PC_only_not_student_acceptance"
+    },
+    {
+      "id": 16,
+      "title": "알림·기기·세션·설정·오류·빈 화면",
+      "recommendedDate": "2026-10-22",
+      "mode": "machine_and_required_meaning",
+      "criteriaStatus": "proposal",
+      "checks": [
+        {
+          "id": "student-source-changed",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "devices-sessions-refresh",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q16.status_attention"
+          ]
+        },
+        {
+          "id": "notifications",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q16.failure_notice",
+            "q16.failure_next_step"
+          ]
+        },
+        {
+          "id": "loading_empty",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q16.empty_shown",
+            "q16.empty_not_error",
+            "q16.error_shown",
+            "q16.loading_shown"
+          ]
+        },
+        {
+          "required": true,
+          "id": "retry",
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q16.timeout_shown",
+            "q16.recovered_no_timeout"
+          ]
+        },
+        {
+          "required": true,
+          "id": "diagnostics_redaction",
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q16.diagnostics_help"
+          ]
+        },
+        {
+          "required": true,
+          "id": "unsupported_action",
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q16.unsupported_shown",
+            "q16.unsupported_not_success"
+          ]
+        }
+      ],
+      "provided": "목록·연결 점검·도움 정보 복사 기반",
+      "student": "실패·빈 화면·재시도·미지원 조치 안내",
+      "runtimeStatus": "implemented_local",
+      "checkerVersion": "on-pc-16-0.4",
+      "rubricVersion": "on-16-proposal-0.4",
+      "verificationScope": "synthetic_PC_only_not_student_acceptance"
+    },
+    {
+      "id": 17,
+      "title": "알레프게이트 AI 연결",
+      "recommendedDate": "2026-10-26",
+      "mode": "machine_and_required_meaning",
+      "criteriaStatus": "proposal",
+      "checks": [
+        {
+          "id": "student-source-changed",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "ai_transport_checked",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q17.model_count_label",
+            "q17.explanation_not_run",
+            "q17.no_explanation_success"
+          ]
+        },
+        {
+          "id": "ai_model_called",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "ai_auth_error",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q17.auth_error_explained",
+            "q17.auth_error_not_success"
+          ]
+        },
+        {
+          "id": "ai_limits",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q17.limit_explained"
+          ]
+        },
+        {
+          "id": "ai_manual_recovery",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q17.recovered_no_auth_error"
+          ]
+        },
+        {
+          "id": "ai_generation_reset",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q17.reset_idle",
+            "q17.reset_no_stale_success"
+          ]
+        },
+        {
+          "id": "secret_absence",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "ai_timeout_cancel",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q17.timeout_explained",
+            "q17.cancel_explained",
+            "q17.cancel_not_success"
+          ]
+        }
+      ],
+      "provided": "서버 전용 앱 열쇠와 CLCO 구조를 재사용한 연결·오류 처리",
+      "student": "renderAiConnection의 모델 점검·오류와 renderExplanation의 실제 선택 사건 모델 호출·유효한 설명 수용을 구분",
+      "runtimeStatus": "local_synthetic_pc_proposal",
+      "checkerVersion": "on-pc-17-0.4",
+      "rubricVersion": "on-17-proposal-0.4",
+      "officialStageEnabled": false
+    },
+    {
+      "id": 18,
+      "title": "근거가 있는 AI 사건 설명",
+      "recommendedDate": "2026-10-27",
+      "mode": "machine_and_required_meaning",
+      "criteriaStatus": "proposal",
+      "checks": [
+        {
+          "id": "student-source-changed",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "evidence_binding",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "unknown_evidence",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q18.state_labels",
+            "q18.unknown_not_confirmed",
+            "q18.unknown_not_safe"
+          ]
+        },
+        {
+          "id": "insufficient_evidence",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q18.insufficient_rejected"
+          ]
+        },
+        {
+          "id": "wrong_event_rejected",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q18.bad_output_rejected"
+          ]
+        },
+        {
+          "id": "proposal_not_executed",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q18.proposal_not_executed",
+            "q18.human_confirmation",
+            "q18.executed_output_rejected"
+          ]
+        },
+        {
+          "id": "non_ai_regression",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "explanation_refresh",
+          "required": true,
+          "confirmation": "machine"
+        }
+      ],
+      "provided": "사건 근거 조회와 AI 응답 검증",
+      "student": "renderExplanation으로 선택 사건의 근거·규칙·현재 상태·제안 미실행을 연결하고 잘못된 설명·AI 장애를 구분",
+      "runtimeStatus": "local_synthetic_pc_proposal",
+      "checkerVersion": "on-pc-18-0.4",
+      "rubricVersion": "on-18-proposal-0.4",
+      "officialStageEnabled": false
+    },
+    {
+      "id": 19,
+      "title": "AI 조치 제안과 기존 서버 처리 결과",
+      "recommendedDate": "2026-10-28",
+      "mode": "machine_and_required_meaning",
+      "criteriaStatus": "proposal",
+      "checks": [
+        {
+          "id": "student-source-changed",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "proposal_execution_separation",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q19.proposal_not_success"
+          ]
+        },
+        {
+          "id": "human_confirmation",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q19.prepared_shown",
+            "q19.prepared_not_run"
+          ]
+        },
+        {
+          "id": "current_intent_binding",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q19.intent_expiry"
+          ]
+        },
+        {
+          "id": "observed_server_result",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q19.ack_not_success",
+            "q19.result_observed"
+          ]
+        },
+        {
+          "id": "duplicate_prevention",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "unknown_not_success",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q19.unknown_not_success"
+          ]
+        },
+        {
+          "id": "action_refresh",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q19.refresh_no_stale"
+          ]
+        }
+      ],
+      "provided": "기본 미지원인 서버 전용 조치 설정, 준비·사람 확인·원천 결과 조회와 안전한 renderAction 상태",
+      "student": "renderAction에서 현재 사건·조치·대상·확인 기한·ACK·실제 효과·unknown을 구분하며 이전 결과 제거",
+      "runtimeStatus": "local_synthetic_pc_proposal",
+      "checkerVersion": "on-pc-19-0.4",
+      "rubricVersion": "on-19-proposal-0.4",
+      "officialStageEnabled": false
+    },
+    {
+      "id": 20,
+      "title": "사용 라이브러리와 취약점 정보 대조",
+      "recommendedDate": "2026-10-29",
+      "mode": "machine_and_required_meaning",
+      "criteriaStatus": "proposal",
+      "checks": [
+        {
+          "id": "student-source-changed",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "exact_lock_version",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q20.exact_installed_version"
+          ]
+        },
+        {
+          "id": "osv_match",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q20.known_vulnerability"
+          ]
+        },
+        {
+          "id": "lookup_unavailable",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q20.not_configured",
+            "q20.not_checked",
+            "q20.unavailable_not_clean"
+          ]
+        },
+        {
+          "id": "no_results_distinction",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q20.none_found",
+            "q20.unverifiable_row",
+            "q20.unverifiable_not_clean"
+          ]
+        },
+        {
+          "id": "partial_preservation",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q20.partial_shown",
+            "q20.unverifiable_row"
+          ]
+        },
+        {
+          "id": "refresh_replaces",
+          "required": true,
+          "confirmation": "machine"
+        },
+        {
+          "id": "request_recovery",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q20.request_failed"
+          ]
+        },
+        {
+          "id": "stale_response_blocked",
+          "required": true,
+          "confirmation": "machine_and_meaning",
+          "meaningQuestions": [
+            "q20.cancelled_not_clean"
+          ]
+        }
+      ],
+      "provided": "정확한 lock 버전 공개 승인 선별, OSV 서버 조회와 공통 안전 표시",
+      "student": "renderVulnerabilities의 실제 데이터 갱신, 정확한 좌표·출처·시각·부분/미조회/실패 구분",
+      "runtimeStatus": "local_synthetic_pc_proposal",
+      "checkerVersion": "on-pc-20-0.4",
+      "rubricVersion": "on-20-proposal-0.4",
+      "officialStageEnabled": false
+    },
+    {
+      "id": 21,
+      "title": "설명서와 구성도",
+      "recommendedDate": "2026-11-02",
+      "mode": "automatic_then_async_quality",
+      "criteriaStatus": "proposal",
+      "checks": [
+        {
+          "id": "run_instructions",
+          "required": true
+        },
+        {
+          "id": "architecture",
+          "required": true
+        },
+        {
+          "id": "provided_student_boundary",
+          "required": true
+        },
+        {
+          "id": "failure_guide",
+          "required": true
+        }
+      ],
+      "provided": "설명서 틀과 제공 코드 출처",
+      "student": "설치·실행·실패 해결·실제 지원 범위·학생 구현 설명",
+      "runtimeStatus": "planned_not_verified"
+    },
+    {
+      "id": 22,
+      "title": "새 환경 실행과 v1.0",
+      "recommendedDate": "2026-11-03",
+      "mode": "automatic_then_async_quality",
+      "criteriaStatus": "proposal",
+      "checks": [
+        {
+          "id": "clean_environment",
+          "required": true
+        },
+        {
+          "id": "cumulative_behavior",
+          "required": true
+        },
+        {
+          "id": "data_preservation",
+          "required": true
+        },
+        {
+          "id": "release_reproduction",
+          "required": true
+        }
+      ],
+      "provided": "원본 보존 시험 환경과 실행 확인 도구",
+      "student": "최종 버전에서 접속·기록·AI·지원 조치·복구 누적 재현",
+      "runtimeStatus": "planned_not_verified"
+    }
+  ],
+  "checkerVersion": "per_stage",
+  "rubricVersion": "per_stage",
+  "edition": "R4 v0.6 official",
+  "claimRevision": 4,
+  "officialDecisionStages": [13,14,15,16,17,18,19,20],
+  "promptsDocument": "docs/STUDENT_PROMPTS_R4_V06_OFFICIAL.md"
+}

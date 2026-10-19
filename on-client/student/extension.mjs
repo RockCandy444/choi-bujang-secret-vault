@@ -28,9 +28,9 @@ export function createStudentView() {
         return element;
       };
       const deviceText = (device) =>
-        `${device?.label ?? '확인 불가'} (ID: ${device?.id ?? '확인 불가'}) · ${deviceLabels[device?.status] ?? '확인 불가'}`;
+        `${device?.label ?? '확인 불가'} (ID: ${device?.id ?? '확인 불가'}) · ${deviceLabels[device?.status] ?? '확인 불가'} (${device?.status ?? 'unknown'})`;
       const sessionText = (session) =>
-        `ID: ${session?.id ?? '확인 불가'} · ${sessionLabels[session?.status] ?? '확인 불가'}`;
+        `ID: ${session?.id ?? '확인 불가'} · ${sessionLabels[session?.status] ?? '확인 불가'} (${session?.status ?? 'unknown'})`;
       const renderResource = (title, resource, renderData) => {
         const section = document.createElement('section');
         addText(section, 'h3', title);

@@ -10,7 +10,7 @@ const messages = Object.freeze({
   ON_AI_INVALID_OUTPUT: 'AI 설명의 근거 또는 조치 형식을 확인할 수 없습니다. 기존 기록을 확인하세요.',
   ON_AI_TRANSPORT_PENDING: '공통 AI 연결 모듈을 준비 중입니다. 담당자에게 확인하세요.',
   WB_CLCO_AUTH_REQUIRED: '앱 전용 열쇠를 확인하세요. Workbench 열쇠를 복사하지 마세요.',
-  WB_CLCO_ACCESS_BLOCKED: '학생 앱의 이용 권한을 담당자에게 확인하세요.',
+  WB_CLCO_ACCESS_BLOCKED: '학생 앱 AI 이용이 제한됐습니다. 운영 중지 상태와 이용 권한을 담당자에게 확인하세요.',
   WB_CLCO_SESSION_CLOSED: '현재 AI 이용 시간이 아닙니다. 담당자에게 이용 시간을 확인하세요.',
   WB_CLCO_COHORT_BUDGET_EXHAUSTED: '반의 AI 사용량이 소진됐습니다. 담당자에게 확인하세요.',
   WB_CLCO_RATE_LIMITED: 'AI 요청이 잠시 제한됐습니다. 잠시 후 다시 시도하세요.',
@@ -199,7 +199,7 @@ export function createOnAiService({ env = process.env, model = env.ON_AI_MODEL, 
     if (!configured) throw own('ON_AI_PROVISIONING_PENDING');
     let verifier = verifyAppAuthorization;
     if (verifier === null && record(appAuthorization)) {
-      if (!actualVerifier) actualVerifier = createOnAppAuthorizationVerifier({baseUrl,token,allowLoopbackHttp,timeoutMs,
+      if (!actualVerifier) actualVerifier = createOnAppAuthorizationVerifier({baseUrl,token,allowLoopbackHttp,timeoutMs:Math.min(timeoutMs,10000),
         resolveExpectedContext:appAuthorization.resolveExpectedContext,fetchImpl:appAuthorization.fetchImpl ?? globalThis.fetch,
         maxResponseBytes:appAuthorization.maxResponseBytes ?? 16384});
       verifier = actualVerifier;
@@ -237,7 +237,7 @@ export function createOnAiService({ env = process.env, model = env.ON_AI_MODEL, 
   }
   async function operation({ signal: externalSignal, expectedScope, expectedContext } = {}, task, support=false) {
     if (externalSignal && (support?Reflect.apply(supportAbortRead,externalSignal,[]):externalSignal.aborted)) return failure(own('WB_CLCO_CANCELLED'));
-    if (!Number.isInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 120000) return failure(own('WB_CLCO_INVALID_LIMIT'));
+    if (!Number.isInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 420000) return failure(own('WB_CLCO_INVALID_LIMIT'));
     const controller = new AbortController();
     let timer;
     let cancel;
@@ -305,29 +305,28 @@ export function createOnAiService({ env = process.env, model = env.ON_AI_MODEL, 
         const pins=['appId','audience','subjectId','alephUserId','siteId','projectId','credentialId','grantId','grantVersion','identityVersion','policyVersion','accessPolicyId','purpose','requiredCapability','revoked','credentialFingerprint','modelPolicyVersion'];
         const sameAuthority=current=>{
           if(current.mode!=='verified')throw own('ON_AI_PROVISIONING_PENDING');
-          guard(authorization,signal);guard(current,signal);checkModel(current,false);
+          guard(current,signal);checkModel(current,false);
           if(pins.some(key=>current.proof[key]!==before[key])||['capabilities','allowedModels'].some(key=>JSON.stringify(current.proof[key])!==JSON.stringify(before[key])))throw own('ON_AI_AUTHORIZATION_CHANGED');
         };
         const refresh=async callback=>{
-          const current=await authorize('models','ai.models',signal,expectedScope,expectedContext);
-          alive(signal);sameAuthority(current);
+          const current=await authorize('models','ai.models',signal,expectedScope,expectedContext);alive(signal);sameAuthority(current);
           try{await callback({signal});}catch{alive(signal);throw own('ON_AI_PROVISIONING_PENDING');}
           alive(signal);sameAuthority(current);return current;
         };
         checkModel(authorization,false);
-        const activeClient=await transport();alive(signal);guard(authorization,signal);
+        const activeClient=await transport();alive(signal);
         if(activeClient===null||typeof activeClient!=='object'||types.isProxy(activeClient))throw own('ON_AI_TRANSPORT_PENDING');
         const method=Object.getOwnPropertyDescriptor(activeClient,'listModels');
         if(!method||!Object.hasOwn(method,'value')||typeof method.value!=='function'||types.isProxy(method.value))throw own('ON_AI_TRANSPORT_PENDING');
         const dispatch=await refresh(captured.beforeDispatch);
         alive(signal);sameAuthority(dispatch);
         const models=modelIds(await Reflect.apply(method.value,activeClient,[{signal}]));
-        alive(signal);sameAuthority(dispatch);
+        alive(signal);
         if(models.some(value=>!before.allowedModels.includes(value)))throw own('WB_CLCO_INVALID_RESPONSE');
         if(models.length===0)throw own('ON_AI_MODEL_LIST_EMPTY');
         const current=await refresh(captured.beforePublish);
-        alive(signal);sameAuthority(dispatch);sameAuthority(current);
-        const authorizationValidUntilMs=Math.floor(Math.min(Date.parse(before.validUntil),Date.parse(dispatch.proof.validUntil),Date.parse(current.proof.validUntil),deadline.wall,Date.now()+Math.max(0,deadline.monotonic-performance.now())));
+        alive(signal);sameAuthority(current);
+        const authorizationValidUntilMs=Math.floor(Math.min(Date.parse(current.proof.validUntil),deadline.wall,Date.now()+Math.max(0,deadline.monotonic-performance.now())));
         if(!Number.isSafeInteger(authorizationValidUntilMs)||authorizationValidUntilMs<=Date.now())throw own('ON_AI_PROVISIONING_PENDING');
         // Model names and provider metadata never enter the public diagnostic result.
         return {ok:true,transportChecked:true,audienceAuthorization:'verified',modelCount:models.length,authorizationValidUntilMs,
@@ -354,7 +353,7 @@ export function createOnAiService({ env = process.env, model = env.ON_AI_MODEL, 
           const pins=['appId','audience','subjectId','alephUserId','siteId','projectId','credentialId','grantId','grantVersion','identityVersion','policyVersion','accessPolicyId','purpose','requiredCapability','revoked','credentialFingerprint','modelPolicyVersion'];
           const sameAuthority=current=>{
             if(current.mode!=='verified')throw own('ON_AI_PROVISIONING_PENDING');
-            guard(authorization,signal);guard(current,signal);checkModel(current,true);
+            guard(current,signal);checkModel(current,true);
             if(pins.some(key=>current.proof[key]!==before[key])||['capabilities','allowedModels'].some(key=>JSON.stringify(current.proof[key])!==JSON.stringify(before[key])))throw own('ON_AI_PROVISIONING_PENDING');
           };
           const refresh=async callback=>{
@@ -363,17 +362,17 @@ export function createOnAiService({ env = process.env, model = env.ON_AI_MODEL, 
             alive(signal);sameAuthority(current);return current;
           };
           checkModel(authorization,true);
-          const activeClient=await transport();alive(signal);guard(authorization,signal);
+          const activeClient=await transport();alive(signal);
           if(!activeClient||typeof activeClient!=='object'||types.isProxy(activeClient))throw own('ON_AI_TRANSPORT_PENDING');
           const method=Object.getOwnPropertyDescriptor(activeClient,'chat');
           if(!method||!Object.hasOwn(method,'value')||typeof method.value!=='function'||types.isProxy(method.value))throw own('ON_AI_TRANSPORT_PENDING');
           const body={model,stream:false,messages:[{role:'system',content:systemPrompt},{role:'user',content:JSON.stringify(incident)}]};
           const dispatch=await refresh(captured.beforeDispatch);alive(signal);sameAuthority(dispatch);
-          const response=await Reflect.apply(method.value,activeClient,[body,{signal}]);alive(signal);sameAuthority(dispatch);
+          const response=await Reflect.apply(method.value,activeClient,[body,{signal}]);alive(signal);
           let parsed;try{parsed=JSON.parse(incidentContent(response));}catch{throw own('ON_AI_INVALID_OUTPUT');}
           const explanation=validateOutput(parsed,incident,secrets);
-          const current=await refresh(captured.beforePublish);alive(signal);sameAuthority(dispatch);sameAuthority(current);
-          const authorizationValidUntilMs=Math.floor(Math.min(Date.parse(before.validUntil),Date.parse(dispatch.proof.validUntil),Date.parse(current.proof.validUntil),deadline.wall,Date.now()+Math.max(0,deadline.monotonic-performance.now())));
+          const current=await refresh(captured.beforePublish);alive(signal);sameAuthority(current);
+          const authorizationValidUntilMs=Math.floor(Math.min(Date.parse(current.proof.validUntil),deadline.wall,Date.now()+Math.max(0,deadline.monotonic-performance.now())));
           if(!Number.isSafeInteger(authorizationValidUntilMs)||authorizationValidUntilMs<=Date.now())throw own('ON_AI_PROVISIONING_PENDING');
           return {ok:true,transportChecked:true,audienceAuthorization:'verified',explanation,authorizationValidUntilMs,help:help('ON_AI_APP_AUTHORIZATION_VERIFIED','verified')};
         },true);
@@ -403,33 +402,36 @@ export function createOnAiService({ env = process.env, model = env.ON_AI_MODEL, 
         alive(signal);
         if(authorization.mode!=='verified')throw own('ON_AI_PROVISIONING_PENDING');
         const before=structuredClone(authorization.proof);
+        const pins=['appId','audience','subjectId','alephUserId','siteId','projectId','credentialId','grantId','grantVersion','identityVersion','policyVersion','accessPolicyId','purpose','requiredCapability','revoked','credentialFingerprint','modelPolicyVersion'];
+        const sameAuthority=current=>{
+          if(current.mode!=='verified')throw own('ON_AI_PROVISIONING_PENDING');
+          guard(current,signal);checkModel(current,true);
+          if(pins.some(key=>current.proof[key]!==before[key])||['capabilities','allowedModels'].some(key=>JSON.stringify(current.proof[key])!==JSON.stringify(before[key])))throw own('ON_AI_PROVISIONING_PENDING');
+        };
         checkModel(authorization,true);
-        const activeClient=await transport();alive(signal);guard(authorization,signal);
+        const activeClient=await transport();alive(signal);
         if(activeClient===null||typeof activeClient!=='object'||types.isProxy(activeClient))throw own('ON_AI_TRANSPORT_PENDING');
         const method=Object.getOwnPropertyDescriptor(activeClient,'learnerSupport');
         if(!method||!Object.hasOwn(method,'value')||typeof method.value!=='function'||types.isProxy(method.value))throw own('ON_AI_TRANSPORT_PENDING');
         const finite=JSON.parse(prepared.messages[1].content);
+        const dispatch=await authorize('explain','ai.explain',signal,expectedScope,expectedContext);alive(signal);sameAuthority(dispatch);
         if(captured.beforeDispatch!==undefined){
           try{await captured.beforeDispatch({signal});}catch{if(signal.aborted)throw own('WB_CLCO_CANCELLED');throw own('ON_AI_PROVISIONING_PENDING');}
         }
-        alive(signal);guard(authorization,signal);checkModel(authorization,true);
+        alive(signal);sameAuthority(dispatch);
         const response=await Reflect.apply(method.value,activeClient,[{model,problemKind:finite.problemKind,observations:finite.observations},{signal}]);
-        alive(signal);guard(authorization,signal);
+        alive(signal);
         const projected=captureSupport(response,['ok','data'],[],'LEARNER_SUPPORT_MODEL_OUTPUT_INVALID');
         if(projected.ok!==true)throw own('LEARNER_SUPPORT_MODEL_OUTPUT_INVALID');
         const guide=validateLearnerSupportGuide(prepared,projected.data,{signal});
+        const current=await authorize('explain','ai.explain',signal,expectedScope,expectedContext);alive(signal);sameAuthority(current);
         if(captured.beforePublish!==undefined){
           try{await captured.beforePublish({signal});}catch{if(signal.aborted)throw own('WB_CLCO_CANCELLED');throw own('ON_AI_PROVISIONING_PENDING');}
         }
         alive(signal);
-        const current=await authorize('explain','ai.explain',signal,expectedScope,expectedContext);
+        sameAuthority(current);
         alive(signal);
-        if(current.mode!=='verified')throw own('ON_AI_PROVISIONING_PENDING');
-        guard(authorization,signal);guard(current,signal);checkModel(current,true);
-        const pins=['appId','audience','subjectId','alephUserId','siteId','projectId','credentialId','grantId','grantVersion','identityVersion','policyVersion','accessPolicyId','purpose','requiredCapability','revoked','credentialFingerprint','modelPolicyVersion'];
-        if(pins.some(key=>current.proof[key]!==before[key])||['capabilities','allowedModels'].some(key=>JSON.stringify(current.proof[key])!==JSON.stringify(before[key])))throw own('ON_AI_PROVISIONING_PENDING');
-        alive(signal);
-        const authorizationValidUntilMs=Math.floor(Math.min(Date.parse(before.validUntil),Date.parse(current.proof.validUntil),deadline.wall,Date.now()+Math.max(0,deadline.monotonic-performance.now())));
+        const authorizationValidUntilMs=Math.floor(Math.min(Date.parse(current.proof.validUntil),deadline.wall,Date.now()+Math.max(0,deadline.monotonic-performance.now())));
         if(!Number.isSafeInteger(authorizationValidUntilMs)||authorizationValidUntilMs<=Date.now())throw own('ON_AI_PROVISIONING_PENDING');
         return {ok:true,transportChecked:true,audienceAuthorization:'verified',guide,authorizationValidUntilMs,
           help:help('ON_AI_APP_AUTHORIZATION_VERIFIED','verified')};

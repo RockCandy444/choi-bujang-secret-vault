@@ -27,7 +27,7 @@ export function createVaultOnAiService({enabled=false,vault,model='aleph/auto',t
   const configKeys=['fetchImpl','maxResponseBytes','allowLoopbackHttp'];
   const configured = enabled === true && typeof vault?.load === 'function'
     && typeof model === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,99}$/.test(model)
-    && positive(timeoutMs) && timeoutMs <= 120000
+    && positive(timeoutMs) && timeoutMs <= 420000
     && (transportFactory === undefined || typeof transportFactory === 'function')
     && data(appAuthorization) && Object.keys(appAuthorization).every(k=>configKeys.includes(k))
     && (appAuthorization.fetchImpl === undefined || typeof appAuthorization.fetchImpl === 'function')

@@ -35,6 +35,7 @@ function serverFailure(status, payload) {
   else if (status === 403) code = 'WB_CLCO_ACCESS_BLOCKED';
   else if (status === 429) code = 'WB_CLCO_LIMIT_REACHED';
   else if (status >= 300 && status < 400) code = 'WB_CLCO_REDIRECT_BLOCKED';
+  else if (status === 504 && ['UPSTREAM_TIMEOUT', 'UPSTREAM_FIRST_TOKEN_TIMEOUT'].includes(serverCode)) code = 'WB_CLCO_TIMEOUT';
   else if (status >= 500) code = 'WB_CLCO_SERVER_UNAVAILABLE';
   return fail(code, status, serverCode);
 }
@@ -49,7 +50,7 @@ export function createClcoClient({ baseUrl, token, timeoutMs = 10000, maxRespons
   base.pathname = base.pathname.replace(/\/+$/, '') || '/v1';
   if (!base.pathname.endsWith('/v1')) throw fail('WB_CLCO_INVALID_URL');
   if (typeof token !== 'string' || !/^[A-Za-z0-9._~-]+$/.test(token)) throw fail('WB_CLCO_INVALID_TOKEN');
-  if (!Number.isInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 120000 || !Number.isInteger(maxResponseBytes) || maxResponseBytes <= 0) {
+  if (!Number.isInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 420000 || !Number.isInteger(maxResponseBytes) || maxResponseBytes <= 0) {
     throw fail('WB_CLCO_INVALID_LIMIT');
   }
 

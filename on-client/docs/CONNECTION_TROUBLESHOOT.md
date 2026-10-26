@@ -18,7 +18,7 @@ Node.js 는 22~24 를 지원하며, 수업·검사 기준 버전은 24.19.0 입�
 |---|---|---|
 | Node.js 22~24(수업·검사 기준 24.19.0) | 학생 | 설치 후 PowerShell 창을 새로 엽니다 |
 | 4차 시작 틀 배포본 | 운영자(ALEPH 13단계 화면에 공지) | 공지된 곳에서만 받습니다 |
-| 계정 연결용 native 호스트 설정 파일 | 운영자 | 안내받은 경로를 실행 명령에 넣습니다. 직접 만들거나 남의 파일을 복사하지 않습니다 |
+| 계정 연결용 native 호스트 설정 파일 | 시작 틀 0.2.12의 실행 도구가 자동 준비 | 같은 프로젝트에서 실행합니다. 직접 만들거나 남의 파일을 복사하지 않습니다. 구버전은 기존 작업을 보존해 갱신합니다 |
 | SDP 연결용 개인 설정 파일·인증서 | 운영자 | 안내받은 경로를 넣습니다. 프로젝트·Git·제출물 밖에 보관합니다 |
 | 학생 계정과 AI 앱 권한 발급 | 운영자 | 화면 순서대로 확인·승인만 합니다 |
 | 수업용 AI 게이트의 앱 전용 모델 목록 처리(새 게이트 버전 반영) | 운영자 | 반영 전에는 모델 점검이 실패할 수 있으며 학생 잘못이 아닙니다 |
@@ -41,6 +41,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1
 | `-Background` | 창 없이 켭니다. 안내된 프로세스 번호의 node 를 작업 관리자에서 끄면 꺼집니다 |
 | `-Demo` | 예제 자료로 켭니다. 실제 연결이 아니며 SDP 설정과 함께 쓸 수 없습니다(SDP_HOST_DEMO_CONFLICT) |
 | `-NativeHostConfig "<안내받은 절대 경로>"` | 계정 연결·AI 앱 승인에 쓰는 설정 |
+| `-NoNativeHost` | 자동 계정 연결 준비를 사용하지 않는 로컬 확인. 명시한 NativeHostConfig와 함께 쓸 수 없습니다 |
 | `-SdpHostConfig "<안내받은 절대 경로>"` | 본인·기기·업무 앱 판정·보안 기록에 쓰는 SDP 연결 설정 |
 | `-WaitSeconds 30` | 켜짐 확인을 기다리는 시간(1~120초, 기본 20) |
 
@@ -80,7 +81,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1 -Na
 
 | 코드 | 원인 | 학생 확인 | 운영자 확인 | 다시 시도 조건 |
 |---|---|---|---|---|
-| NATIVE_HOST_DISABLED, NATIVE_LOGIN_NOT_MOUNTED | 이 실행에 계정 연결 설정이 없음 | `-NativeHostConfig` 를 넣었는지 | 설정 파일 발급 | 설정을 받은 뒤 다시 켜기 |
+| NATIVE_HOST_DISABLED, NATIVE_LOGIN_NOT_MOUNTED | 이 실행에 계정 연결 설정이 없음 | 최신 시작 틀의 실행 도구로 켰는지, Demo·NoNativeHost로 실행하지 않았는지 | 시작 틀·실행 경로와 자동 준비 오류 확인 | 기존 작업을 보존해 시작 틀을 갱신하고 다시 켜기 |
 | NATIVE_LOGIN_PENDING, NATIVE_LOGIN_STATUS_ONLY | 포털 번호 확인 전 | 포털에서 같은 번호 확인 후 「로그인 확인 완료」 | 없음 | 포털 확인 뒤 |
 | NATIVE_HOST_EXPIRED, NATIVE_LOGIN_EXPIRED_LOCAL | 확인 기한 지남 | 「계정 연결 취소」 뒤 새로 시작 | 없음 | 새로 시작 |
 | NATIVE_HOST_CONTEXT_CHANGED | 계정·로그인·파일·프로젝트 연속성이 바뀜 | 취소 뒤 새로 시작. 같은 계정인지 확인 | 반복되면 설정·프로젝트 등록 확인 | 새로 시작 |

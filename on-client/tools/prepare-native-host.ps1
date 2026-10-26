@@ -7,7 +7,8 @@
 param(
   [Parameter(Mandatory=$true)][string]$ProjectRoot,
   [Parameter(Mandatory=$true)][string]$HostRoot,
-  [switch]$Create
+  [switch]$Create,
+  [switch]$ReuseExisting
 )
 # Use only modules supplied by this running PowerShell engine; preserve every ACL/identity check.
 $env:PSModulePath=[IO.Path]::Combine($PSHOME,'Modules')
@@ -43,7 +44,8 @@ try{
   $project=LocalPath $ProjectRoot;$hostPath=LocalPath $HostRoot
   if((Under $hostPath $project) -or (Under $project $hostPath)){Reject 'ALEKOV_NATIVE_PREPARE_NESTED'}
   if(![IO.Directory]::Exists($project)){Reject 'ALEKOV_NATIVE_PREPARE_PROJECT_MISSING'}
-  if(Test-Path -LiteralPath $hostPath){Reject 'ALEKOV_NATIVE_PREPARE_EXISTS'}
+  $existing=Test-Path -LiteralPath $hostPath
+  if($existing -and !$ReuseExisting){Reject 'ALEKOV_NATIVE_PREPARE_EXISTS'}
   $parent=[IO.Path]::GetDirectoryName($hostPath)
   if(![IO.Directory]::Exists($parent)){Reject 'ALEKOV_NATIVE_PREPARE_PARENT_MISSING'}
   Add-Type -TypeDefinition @'
@@ -60,6 +62,7 @@ public static class AlekovNativePrepare {
  public static SafeFileHandle Hold(string p){var h=CreateFile(p,0x80,3,IntPtr.Zero,3,0x02200000,IntPtr.Zero);try{Identity(h,true);var name=new StringBuilder(32768);uint n=GetFinalPathNameByHandle(h,name,(uint)name.Capacity,0);if(n==0||n>=name.Capacity)throw new IOException("UNSAFE_PATH");string final=name.ToString();if(final.StartsWith(@"\\?\",StringComparison.Ordinal))final=final.Substring(4);if(!String.Equals(final.TrimEnd('\\'),Path.GetFullPath(p).TrimEnd('\\'),StringComparison.OrdinalIgnoreCase))throw new IOException("PATH_ALIAS_REJECTED");return h;}catch{h.Dispose();throw;}}
  public static void MakeDirectory(string p,byte[] descriptor){var pin=GCHandle.Alloc(descriptor,GCHandleType.Pinned);try{var sa=new SECURITY{length=Marshal.SizeOf(typeof(SECURITY)),descriptor=pin.AddrOfPinnedObject(),inherit=0};if(!CreateDirectory(p,ref sa))throw new Win32Exception(Marshal.GetLastWin32Error());}finally{pin.Free();}}
  public static FileStream WriteNew(string p,byte[] descriptor,byte[] bytes){var pin=GCHandle.Alloc(descriptor,GCHandleType.Pinned);SafeFileHandle handle=null;try{var sa=new SECURITY{length=Marshal.SizeOf(typeof(SECURITY)),descriptor=pin.AddrOfPinnedObject(),inherit=0};handle=CreatePrivateFile(p,0xC0000000,0,ref sa,1,0x80200080,IntPtr.Zero);if(handle.IsInvalid)throw new Win32Exception(Marshal.GetLastWin32Error());var stream=new FileStream(handle,FileAccess.ReadWrite);try{stream.Write(bytes,0,bytes.Length);stream.Flush(true);Identity(stream.SafeFileHandle,false);return stream;}catch{stream.Dispose();throw;}}catch{if(handle!=null)handle.Dispose();throw;}finally{pin.Free();}}
+ public static FileStream ReadExisting(string p){var handle=CreateFile(p,0x80000000,1,IntPtr.Zero,3,0x00200000,IntPtr.Zero);try{Identity(handle,false);return new FileStream(handle,FileAccess.Read);}catch{handle.Dispose();throw;}}
 }
 '@
   function HoldOne([string]$p){try{$handle=[AlekovNativePrepare]::Hold($p)}catch{Reject 'ALEKOV_NATIVE_PREPARE_PATH_UNSAFE'};$held.Add($handle);return @{path=$p;handle=$handle;identity=[AlekovNativePrepare]::Identity($handle,$true)}}
@@ -67,6 +70,22 @@ public static class AlekovNativePrepare {
   $projectChain=@(HoldChain $project);$parentChain=@(HoldChain $parent);$projectProof=$projectChain[-1];$parentProof=$parentChain[-1]
   if(@($parentChain|Where-Object{$_.identity -ceq $projectProof.identity}).Count -gt 0){Reject 'ALEKOV_NATIVE_PREPARE_NESTED'}
   $registry=[IO.Path]::Combine($hostPath,'registry');$vault=[IO.Path]::Combine($hostPath,'vault');$configPath=[IO.Path]::Combine($hostPath,'native.json')
+  if($existing){
+    $stage='reuse'
+    foreach($target in @($hostPath,$registry,$vault)){HoldOne $target|Out-Null;CheckAcl $target}
+    try{$file=[AlekovNativePrepare]::ReadExisting($configPath);$held.Add($file)}catch{Reject 'ALEKOV_NATIVE_PREPARE_PATH_UNSAFE'}
+    CheckAcl $configPath
+    if($file.Length -le 0 -or $file.Length -gt 8192){Reject 'ALEKOV_NATIVE_PREPARE_CONFIG_INVALID'}
+    $actual=New-Object byte[] ([int]$file.Length);$offset=0
+    while($offset -lt $actual.Length){$n=$file.Read($actual,$offset,$actual.Length-$offset);if($n -le 0){Reject 'ALEKOV_NATIVE_PREPARE_CHANGED'};$offset+=$n}
+    try{$saved=([Text.UTF8Encoding]::new($false,$true)).GetString($actual)|ConvertFrom-Json}catch{Reject 'ALEKOV_NATIVE_PREPARE_CONFIG_INVALID'}
+    $keys=@('enabled','registryRoot','vaultRoot','projectRoot','gatewayOrigin','portalOrigin')
+    if($null -eq $saved -or @($saved.PSObject.Properties).Count -ne 6 -or @($keys|Where-Object{!($saved.PSObject.Properties.Name -ccontains $_)}).Count -gt 0){Reject 'ALEKOV_NATIVE_PREPARE_CONFIG_INVALID'}
+    if($saved.enabled -isnot [bool] -or !$saved.enabled -or $saved.gatewayOrigin -cne 'https://ai-classroom-gateway-production.up.railway.app' -or $saved.portalOrigin -cne 'https://aleph-omega.vercel.app'){Reject 'ALEKOV_NATIVE_PREPARE_CONFIG_INVALID'}
+    foreach($pair in @(@('projectRoot',$project),@('registryRoot',$registry),@('vaultRoot',$vault))){if($saved.($pair[0]) -isnot [string] -or ![string]::Equals($saved.($pair[0]),$pair[1],[StringComparison]::OrdinalIgnoreCase)){Reject 'ALEKOV_NATIVE_PREPARE_CONFIG_INVALID'}}
+    Emit @{ok=$true;created=$false;reused=$true;configurationPath=$configPath;projectRoot=$project;hostRoot=$hostPath;configSha256=(Hash $actual)}
+    exit 0
+  }
   if(!$Create){Emit @{ok=$true;created=$false;configurationPath=$configPath;projectRoot=$project;hostRoot=$hostPath};exit 0}
   $directorySecurity=PrivateSecurity $true;$fileSecurity=PrivateSecurity $false
   $proofs=New-Object Collections.Generic.List[object]

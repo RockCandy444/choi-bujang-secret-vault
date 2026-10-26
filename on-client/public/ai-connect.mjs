@@ -278,7 +278,7 @@ export const NATIVE_LOGIN_PATHS = Object.freeze({
 });
 export const NATIVE_ACTION_MS = 10000;
 export const NATIVE_RESPONSE_MAX_BYTES = 8192;
-const NATIVE_SERVER_STATES = ['disconnected', 'starting', 'awaiting_approval', 'connected', 'cancelled', 'unknown'];
+const NATIVE_SERVER_STATES = ['disconnected', 'starting', 'awaiting_approval', 'connected', 'cancelled', 'expired', 'unknown'];
 // 서버 nativePublicError 의 공개 코드와 비활성 경로(NATIVE_HOST_DISABLED)만 이유로 받아들인다.
 export const NATIVE_PUBLIC_CODES = Object.freeze(['INPUT_INVALID', 'DISABLED', 'CANCELLED', 'EXPIRED', 'TIMEOUT', 'RESPONSE_INVALID',
   'CONTEXT_CHANGED', 'UNVERIFIED', 'OUTCOME_UNKNOWN', 'BUSY'].map((code) => `NATIVE_HOST_${code}`));
@@ -312,6 +312,7 @@ export const NATIVE_MESSAGES = Object.freeze({
   NATIVE_LOGIN_SERVER_UNKNOWN: '서버가 결과를 확인하지 못했습니다. 「현재 로그인 확인」이나 「계정 연결 취소」를 직접 누르세요.',
   NATIVE_LOGIN_SERVER_STARTING: '다른 연결 시작이 진행 중으로 보입니다. 잠시 뒤 「현재 로그인 확인」을 누르거나 「계정 연결 취소」를 누르세요.',
   NATIVE_LOGIN_EXPIRED_LOCAL: '표시된 기한이 지나 화면의 연결·확인 번호 표시를 지웠습니다. 서버에 다시 묻지 않았습니다.',
+  NATIVE_LOGIN_TICKET_EXPIRED: '서버가 이 연결 요청의 만료를 확인했습니다. 취소 성공을 뜻하지 않으며, 새 연결을 시작할 수 있습니다.',
   NATIVE_LOGIN_LOCAL_RESET: '이 화면의 진행과 요청만 멈췄습니다. 서버의 계정 연결이 취소됐다고 보지 않습니다. 「현재 로그인 확인」이나 「계정 연결 취소」로 확인하세요.',
 });
 const NATIVE_PHASE_MESSAGES = Object.freeze({
@@ -335,8 +336,9 @@ const nativeReason = (code) => (typeof code === 'string' && Object.hasOwn(NATIVE
 const sixDigits = (v) => typeof v === 'string' && /^\d{6}$/.test(v);
 const validNativeMeta = (m) => exact(m, NATIVE_META_KEYS) && NATIVE_META_KEYS.every((k) => typeof m[k] === 'string' && m[k].length <= 64);
 const nativeCanStart = (phase, expiredFrom) => ['idle', 'disconnected', 'cancelled', 'error', 'connected'].includes(phase)
-  || (phase === 'expired' && expiredFrom === 'connected');
-const nativeCanCancel = (phase) => !['idle', 'cancelling', 'cancelled', 'disconnected', 'error'].includes(phase);
+  || (phase === 'expired' && ['connected', 'pending-ticket'].includes(expiredFrom));
+const nativeCanCancel = (phase, expiredFrom) => !(phase === 'expired' && expiredFrom === 'pending-ticket')
+  && !['idle', 'cancelling', 'cancelled', 'disconnected', 'error'].includes(phase);
 
 /** 승인 URL 은 고정 포털의 /workbench.html, query 는 nativeLogin·device·challenge 순서의 정확한 세 개만 허용한다. */
 export function validNativeApprovalUrl(value) {
@@ -504,8 +506,10 @@ export function createNativeLoginController({ transport = createNativeFetchTrans
   function accept(data, g, extra = {}) {
     monoExpiry = data.expiresAtMs === null ? null : monotonic() + (data.expiresAtMs - now());
     const phase = data.state === 'unknown' || data.state === 'starting' ? 'unknown' : data.state;
-    const reason = data.state === 'unknown' ? 'NATIVE_LOGIN_SERVER_UNKNOWN' : data.state === 'starting' ? 'NATIVE_LOGIN_SERVER_STARTING' : null;
-    set({ phase, expiresAtMs: data.expiresAtMs, approvalUrl: data.approvalUrl, confirmation: data.confirmation, reason, cancelUnconfirmed: false, expiredFrom: null, ...extra });
+    const reason = data.state === 'unknown' ? 'NATIVE_LOGIN_SERVER_UNKNOWN' : data.state === 'starting' ? 'NATIVE_LOGIN_SERVER_STARTING'
+      : data.state === 'expired' ? 'NATIVE_LOGIN_TICKET_EXPIRED' : null;
+    set({ phase, expiresAtMs: data.expiresAtMs, approvalUrl: data.approvalUrl, confirmation: data.confirmation, reason,
+      cancelUnconfirmed: false, expiredFrom: data.state === 'expired' ? 'pending-ticket' : null, ...extra });
     scheduleExpiry(g);
   }
   function failTo(ctx, code, phase, extra = {}) {
@@ -605,7 +609,7 @@ export function createNativeLoginController({ transport = createNativeFetchTrans
   // 사용자 취소: 새 세대로 진행 중 요청과 늦은 응답을 버리고 서버에 실제 cancel {} 를 보낸다.
   // starting 중에도 보낸다(서버가 ticket·verifier 를 보관한다). 응답 유실·시간 초과는 취소 성공이 아니다.
   async function cancel() {
-    if (!nativeCanCancel(state.phase)) return state;
+    if (!nativeCanCancel(state.phase, state.expiredFrom)) return state;
     notify('cancel');
     const ctx = begin('cancelling', { expiresAtMs: null, approvalUrl: null, confirmation: null, expiredFrom: null });
     monoExpiry = null;
@@ -614,6 +618,7 @@ export function createNativeLoginController({ transport = createNativeFetchTrans
       if (!live(ctx)) return state;
       if (!result.ok) { failTo(ctx, result.error.code, 'unknown', { cancelUnconfirmed: true }); return state; }
       const data = validNativeData(result.data, now());
+      if (data?.state === 'expired' && timely(ctx)) { accept(data, ctx.g); return state; }
       if (data?.state === 'cancelled' && timely(ctx)) { accept(data, ctx.g); return state; }
       failTo(ctx, data?.state === 'cancelled' ? 'NATIVE_LOGIN_CLIENT_TIMEOUT' : 'NATIVE_LOGIN_RESPONSE_INVALID', 'unknown', { cancelUnconfirmed: true });
       return state;
@@ -666,8 +671,9 @@ export function nativeLoginView(state, now = Date.now()) {
   if (phase === 'awaiting_approval' && !awaiting) { phase = 'unknown'; reason = 'NATIVE_LOGIN_RESPONSE_INVALID'; }
   const busy = NATIVE_BUSY.includes(phase);
   const cancelUnconfirmed = phase === 'unknown' && s.cancelUnconfirmed === true;
-  const base = cancelUnconfirmed ? NATIVE_CANCEL_UNCONFIRMED_MESSAGE : NATIVE_PHASE_MESSAGES[phase];
-  const detail = reason && !(cancelUnconfirmed && reason === 'NATIVE_LOGIN_CANCELLED') ? NATIVE_MESSAGES[reason] : '';
+  const ticketExpired = phase === 'expired' && from === 'pending-ticket';
+  const base = cancelUnconfirmed ? NATIVE_CANCEL_UNCONFIRMED_MESSAGE : ticketExpired ? NATIVE_MESSAGES.NATIVE_LOGIN_TICKET_EXPIRED : NATIVE_PHASE_MESSAGES[phase];
+  const detail = reason && !ticketExpired && !(cancelUnconfirmed && reason === 'NATIVE_LOGIN_CANCELLED') ? NATIVE_MESSAGES[reason] : '';
   return Object.freeze({
     phase,
     reason,
@@ -680,6 +686,6 @@ export function nativeLoginView(state, now = Date.now()) {
     canStart: nativeCanStart(phase, from),
     canRedeem: awaiting,
     canCheck: !busy,
-    canCancel: nativeCanCancel(phase),
+    canCancel: nativeCanCancel(phase, from),
   });
 }

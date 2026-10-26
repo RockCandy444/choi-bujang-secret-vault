@@ -231,6 +231,12 @@ export function createConnectionManager(options={}){
 }
 
 // native host5를 engine scope8로 바꾸지 않는다. 모든 callback은 시작 때의 원 operation을 사용한다.
+// 브라우저 시작 응답은 내부 flow view 보다 좁은 고정 계약이다.
+// reason 과 native capability/connector 상태는 서버 안에만 둔다.
+export function nativeStartPublicData(flow,connection){
+  return {connectionId:flow.id,approvalUrl:connection.approvalUrl,confirmation:connection.confirmation,expiresAt:flow.expiresAt,state:flow.state};
+}
+
 function createNativeManager(raw,host){
   const config=nativeOwn(raw,['nativeHost'],['enabled','fetchImpl','clock','startTimeoutMs','finishTimeoutMs','pollIntervalMs','maxFlows','retainMs']);
   const fetchImpl=config.fetchImpl??globalThis.fetch,clock=config.clock??Date.now,startTimeoutMs=config.startTimeoutMs??15000,finishTimeoutMs=config.finishTimeoutMs??420000,pollIntervalMs=config.pollIntervalMs??2000,maxFlows=config.maxFlows??8,retainMs=config.retainMs??600000;
@@ -256,7 +262,7 @@ function createNativeManager(raw,host){
       const result=await connector.begin({signal:controller.signal});assertNativeHostOperation(host,cap);
       if(!result?.ok||!result.connection||!isWorkbenchApprovalUrl(result.connection.approvalUrl,result.connection.deviceId,context.projectId))throw Error('ALEKOV_CONNECT_OUTCOME_UNKNOWN');
       flow={id:result.connection.deviceId,expiresAt:result.connection.expiresAt,state:'awaiting_approval',reason:null,cap,controller,connector,handle:result.handle,vaultAck:false,timer:null};flows.set(flow.id,flow);
-      flow.timer=setTimeout(()=>settle(flow,'unknown','ALEKOV_CONNECT_TIMEOUT'),finishTimeoutMs);return reply(201,{ok:true,data:{...view(flow),approvalUrl:result.connection.approvalUrl,confirmation:result.connection.confirmation}});
+      flow.timer=setTimeout(()=>settle(flow,'unknown','ALEKOV_CONNECT_TIMEOUT'),finishTimeoutMs);return reply(201,{ok:true,data:nativeStartPublicData(flow,result.connection)});
     }catch{controller.abort();closeNativeHostOperation(cap);return failure(409,'ALEKOV_CONNECT_CONTEXT_UNVERIFIED');}
     finally{clearTimeout(timer);signal?.removeEventListener('abort',stop);starting--;}
   }

@@ -83,7 +83,16 @@ export function createNativeLogin(options={}){
     status(input={}){nativeOwn(input,[]);if(!enabled||s.closed)throw nativeFault('DISABLED');return publicView();},
     async cancel(input={},call={}){nativeOwn(input,[]);const {signal}=nativeOwn(call,[],['signal']);nativeSignal(signal);const old=s.session,t=s.ticket;invalidate();s.state='cancelled';const g=s.generation;
       try{await serializedCurrent(async()=>{active(g,signal);if(t)await request('cancel',{deviceId:t.deviceId,verifier:t.verifier},g,signal);else if(old){const n=await request('nonce',{handle:old.handle,verifier:old.verifier,action:'cancel'},g,signal);const d=nativeOwn(n.data,['nonce','expiresAtMs']);await request('cancel',{handle:old.handle,verifier:old.verifier,nonce:d.nonce},g,signal);}active(g,signal);s.ticket=null;});return publicView();}
-      catch(e){if(g===s.generation)s.state='unknown';throw e;}
+      catch(e){
+        // A confirmed gateway expiry makes this pending ticket unusable. Release only
+        // this generation's exact in-memory ticket; never treat a session cancel 410,
+        // a lost response, or another failure as cancellation success.
+        if(g===s.generation){
+          if(t&&!old&&s.ticket===t&&e?.code==='NATIVE_HOST_EXPIRED'){s.ticket=null;s.state='expired';return publicView();}
+          s.state='unknown';
+        }
+        throw e;
+      }
     },
     close(){invalidate();s.closed=true;s.state='cancelled';s.ticket=null;}
   });

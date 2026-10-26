@@ -355,7 +355,7 @@ export async function openSdpIncidentOperation(host,rawInput,call={}){
   if(!isOwnedSdpHostEngine(host))scopeError();
   const {eventId}=sdpHostRecord(rawInput,['eventId']),options=sdpHostRecord(call,[],['signal','timeoutMs']);
   const signal=sdpHostSignal(options.signal),timeoutMs=options.timeoutMs??TIMEOUT_MS;
-  if(!match(ID,eventId)||!Number.isSafeInteger(timeoutMs)||timeoutMs<=0||timeoutMs>120000)resultError();
+  if(!match(ID,eventId)||!Number.isSafeInteger(timeoutMs)||timeoutMs<=0||timeoutMs>420000)resultError();
   const operation=makeOperation(engines.get(host),{signal},timeoutMs),cap=Object.freeze(Object.create(null));
   operation.privateIncident=true;operation.requestNonce=randomUUID();
   const owned={host,operation,eventId,busy:false,current:null,generation:null,bindingAuthority:null,eventHash:null,evidenceIds:null};incidentOperations.set(cap,owned);

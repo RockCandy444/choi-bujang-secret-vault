@@ -23,6 +23,7 @@ param(
   [switch]$Demo,
   [switch]$Background,
   [string]$NativeHostConfig,
+  [switch]$NoNativeHost,
   [string]$SdpHostConfig,
   [ValidateRange(1, 120)][int]$WaitSeconds = 20
 )
@@ -43,6 +44,29 @@ foreach ($path in @($root, $server, $package)) {
 }
 try { $meta = Get-Content -LiteralPath $package -Raw -Encoding UTF8 | ConvertFrom-Json } catch { Stop-With 'package.json 을 읽지 못했습니다. 시작 틀을 다시 받아 주세요.' }
 if ($meta.name -ne 'alekov-client-starter') { Stop-With '시작 틀 폴더가 아닙니다. 받은 시작 틀의 on-client 폴더에서 실행해 주세요.' }
+
+# 계정 연결용 로컬 보관소만 자동 준비한다. 로그인·승인·AI 요청은 학생이 화면에서 직접 한다.
+if ($NoNativeHost -and $PSBoundParameters.ContainsKey('NativeHostConfig')) { Stop-With 'NoNativeHost와 NativeHostConfig는 함께 사용할 수 없습니다.' }
+if (-not $Demo -and -not $NoNativeHost -and -not $PSBoundParameters.ContainsKey('NativeHostConfig')) {
+  $projectRoot = Split-Path -Parent $root
+  # 패키지 앱에서 LocalAppData 쓰기는 별도 가상 경로로 바뀔 수 있다. 사용자 홈의 고정 개인 경로를 쓴다.
+  $profileRoot = [Environment]::GetFolderPath([Environment+SpecialFolder]::UserProfile)
+  if ([string]::IsNullOrWhiteSpace($profileRoot)) { Stop-With 'Windows 사용자 폴더를 확인하지 못했습니다. 사용자 계정의 개인 폴더를 확인해 주세요.' }
+  $hasher = [Security.Cryptography.SHA256]::Create()
+  try { $projectKey = ([BitConverter]::ToString($hasher.ComputeHash([Text.Encoding]::UTF8.GetBytes($projectRoot.ToLowerInvariant())))).Replace('-','').ToLowerInvariant() } finally { $hasher.Dispose() }
+  $hostRoot = Join-Path $profileRoot ('.aleph-keshev-' + $projectKey)
+  $preparer = Join-Path $PSScriptRoot 'prepare-native-host.ps1'
+  if (-not (Test-Path -LiteralPath $preparer -PathType Leaf)) { Stop-With '계정 연결 준비 도구가 빠졌습니다. 기존 작업을 보존한 채 최신 시작 틀로 갱신해 주세요.' }
+  $preparedText = & 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $preparer -ProjectRoot $projectRoot -HostRoot $hostRoot -Create -ReuseExisting
+  $preparedExit = $LASTEXITCODE
+  try { $prepared = ($preparedText | Out-String) | ConvertFrom-Json } catch { Stop-With '계정 연결 설정을 확인하지 못했습니다. 기존 설정과 학생 작업은 그대로 두었습니다.' }
+  if ($preparedExit -ne 0 -or $prepared.ok -ne $true) { Stop-With ('계정 연결 설정을 준비하지 못했습니다. 기존 설정과 학생 작업은 그대로 두었습니다. ' + $prepared.error.code + ' / ' + $prepared.stage) }
+  $expectedConfig = Join-Path $hostRoot 'native.json'
+  if (-not [string]::Equals($prepared.configurationPath,$expectedConfig,[StringComparison]::OrdinalIgnoreCase)) { Stop-With '계정 연결 설정 경로가 일치하지 않습니다. 기존 설정은 변경하지 않았습니다.' }
+  $NativeHostConfig = $expectedConfig
+  $PSBoundParameters['NativeHostConfig'] = $NativeHostConfig
+  Say '계정 연결 준비가 끝났습니다. 앱에서 확인 번호로 로그인·승인을 진행하세요.'
+}
 
 # 명시한 설정 파일만 전달한다. 내용·소유 SID·보호 ACL은 native startup이 최종 확인한다.
 $nativeArgument = ''

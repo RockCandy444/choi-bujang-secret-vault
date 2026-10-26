@@ -6,6 +6,8 @@ import { normalizeScan, createVulnerabilitiesView } from '/vulnerabilities-view.
 const STUDENT_MODULE = '/student/extension.mjs';
 const STUDENT_PENDING = '학생 구현 대기';
 const REQUEST_TIMEOUT_MS = 10000;
+const AI_REQUEST_TIMEOUT_MS = 310000;
+const aiDeadlinePath = path => ['/api/ai/check', '/api/ai/explain', '/api/learner-support/gpt'].includes(path);
 const UNVERIFIED_MESSAGE = '서버 응답 형식을 확인할 수 없습니다(확인 불가). 정상으로 간주하지 마세요.';
 
 const MODE_LABELS = {
@@ -159,7 +161,7 @@ function validAiCheck(data, meta) {
 const AI_MESSAGES = Object.freeze({
   ON_AI_PROVISIONING_PENDING: '학생 앱 이용 권한의 발급·연결을 준비 중입니다. 담당자에게 확인하세요.',
   WB_CLCO_AUTH_REQUIRED: '앱 전용 열쇠의 인증을 확인하세요. Workbench 열쇠를 복사하지 마세요.',
-  WB_CLCO_ACCESS_BLOCKED: '학생 앱의 이용 권한을 확인하세요.',
+  WB_CLCO_ACCESS_BLOCKED: '학생 앱 AI 이용이 제한됐습니다. 운영 중지 상태와 이용 권한을 담당자에게 확인하세요.',
   WB_CLCO_COHORT_BUDGET_EXHAUSTED: '반의 AI 사용량이 소진됐습니다. 담당자에게 확인하세요.',
   WB_CLCO_RATE_LIMITED: 'AI 요청이 잠시 제한됐습니다. 잠시 후 직접 다시 요청하세요.',
   WB_CLCO_LIMIT_REACHED: 'AI 이용 한도에 도달했습니다. 담당자에게 확인하세요.',
@@ -241,11 +243,11 @@ function localFailure(code, message, meta = { mode: 'disconnected', checkedAt: n
 
 const UNKNOWN_META = { mode: 'unknown', checkedAt: null };
 
-// 모든 요청은 10초 뒤 중단된다. signal로 호출자가 취소할 수 있으며, 응답이 없어도 화면이 잠기지 않는다.
-async function request(path, { method = 'GET', body, signal } = {}) {
+// 일반 조회·조치는 10초, 지정한 AI 경로만 별도 유한 기한을 사용한다. 호출자는 signal로 취소할 수 있다.
+async function request(path, { method = 'GET', body, signal, timeoutMs = REQUEST_TIMEOUT_MS } = {}) {
   const controller = new AbortController();
   let timedOut = false;
-  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
   const onAbort = () => controller.abort();
   if (signal) {
     if (signal.aborted) controller.abort();
@@ -306,14 +308,15 @@ async function request(path, { method = 'GET', body, signal } = {}) {
 async function aiRequest(path, { body, signal } = {}) {
   if (signal?.aborted) return localFailure('CANCELLED', AI_MESSAGES.CANCELLED, UNKNOWN_META);
   const controller = new AbortController();
+  const timeoutMs = aiDeadlinePath(path) ? AI_REQUEST_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
   let timer, cancel;
   const stopped = new Promise(resolve => {
     cancel = () => { resolve(localFailure('CANCELLED', AI_MESSAGES.CANCELLED, UNKNOWN_META)); controller.abort(); };
-    timer = setTimeout(() => { resolve(localFailure('TIMEOUT', AI_MESSAGES.TIMEOUT, UNKNOWN_META)); controller.abort(); }, REQUEST_TIMEOUT_MS);
+    timer = setTimeout(() => { resolve(localFailure('TIMEOUT', AI_MESSAGES.TIMEOUT, UNKNOWN_META)); controller.abort(); }, timeoutMs);
     if (signal?.aborted) cancel();
     else signal?.addEventListener('abort', cancel, { once: true });
   });
-  try { return await Promise.race([request(path, { method: 'POST', body, signal: controller.signal }), stopped]); }
+  try { return await Promise.race([request(path, { method: 'POST', body, signal: controller.signal, timeoutMs }), stopped]); }
   finally { clearTimeout(timer); signal?.removeEventListener('abort', cancel); controller.abort(); }
 }
 

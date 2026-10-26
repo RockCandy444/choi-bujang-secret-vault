@@ -51,7 +51,7 @@ const aiErrorMessages=Object.freeze({
   ON_AI_MODEL_LIST_EMPTY:'현재 앱 권한으로 쓸 수 있는 AI 모델이 없습니다. 담당자에게 모델 허용 설정을 확인하세요.',
   ON_AI_INVALID_INPUT:'사건의 근거와 현재 상태를 확인하세요.',ON_AI_INVALID_OUTPUT:'AI 설명의 근거와 형식을 확인할 수 없습니다.',
   ON_AI_TRANSPORT_PENDING:'공통 AI 연결을 준비 중입니다.',
-  WB_CLCO_AUTH_REQUIRED:'앱 전용 열쇠를 확인하세요.',WB_CLCO_ACCESS_BLOCKED:'학생 앱의 이용 권한을 담당자에게 확인하세요.',
+  WB_CLCO_AUTH_REQUIRED:'앱 전용 열쇠를 확인하세요.',WB_CLCO_ACCESS_BLOCKED:'학생 앱 AI 이용이 제한됐습니다. 운영 중지 상태와 이용 권한을 담당자에게 확인하세요.',
   WB_CLCO_SESSION_CLOSED:'현재 AI 이용 시간을 확인하세요.',WB_CLCO_COHORT_BUDGET_EXHAUSTED:'반의 AI 사용량을 담당자에게 확인하세요.',
   WB_CLCO_RATE_LIMITED:'AI 요청이 잠시 제한됐습니다.',WB_CLCO_LIMIT_REACHED:'AI 이용 한도를 확인하세요.',
   WB_CLCO_SERVER_UNAVAILABLE:'AI 서버가 응답하지 않습니다.',WB_CLCO_TIMEOUT:'AI 요청 시간이 초과됐습니다.',
@@ -205,8 +205,10 @@ export function createOnServer(serverOptions={}) {
   if(nativeDescriptor){if(!Object.hasOwn(nativeDescriptor,'value')||!nativeDescriptor.enumerable)throw Error('INVALID_SERVER_AI_CONFIGURATION');
     nativeConfiguration=captureNativeHostConfiguration(nativeDescriptor.value);}
   else for(let p=Object.getPrototypeOf(serverOptions);p;p=Object.getPrototypeOf(p)){if(types.isProxy(p)||Object.getOwnPropertyDescriptor(p,'nativeHostConfiguration'))throw Error('INVALID_SERVER_AI_CONFIGURATION');}
-  const {engine={evidenceMode:'disconnected'},actionConfiguration:givenActionConfiguration,sdpActionStartup,ai,resolveAiIdentity,readLearnerSupportIdentity,aiEnv=process.env,appCredentialVault,vaultAiConfiguration,aiConnectionConfiguration,allowLoopbackAiHttp=false,aiTimeoutMs=10000,
-    scanner=createProjectScanner(),assetsRoot=root,clock=()=>new Date(),readTimeoutMs=10000,requestTimeoutMs=15000}=serverOptions;
+  const {engine={evidenceMode:'disconnected'},actionConfiguration:givenActionConfiguration,sdpActionStartup,ai,resolveAiIdentity,readLearnerSupportIdentity,aiEnv=process.env,appCredentialVault,vaultAiConfiguration,aiConnectionConfiguration,allowLoopbackAiHttp=false,aiTimeoutMs=300000,
+    scanner=createProjectScanner(),assetsRoot=root,clock=()=>new Date(),readTimeoutMs=10000,requestTimeoutMs=15000,
+    aiRequestTimeoutMs=Object.hasOwn(serverOptions,'requestTimeoutMs')?requestTimeoutMs:305000}=serverOptions;
+  if(!Number.isSafeInteger(aiRequestTimeoutMs)||aiRequestTimeoutMs<=0||aiRequestTimeoutMs>420000)throw Error('INVALID_SERVER_AI_CONFIGURATION');
   if(nativeConfiguration&&(ai!==undefined||resolveAiIdentity!==undefined||readLearnerSupportIdentity!==undefined||appCredentialVault!==undefined||vaultAiConfiguration!==undefined||aiConnectionConfiguration!==undefined||typeof aiEnv.ON_AI_APP_KEY==='string'&&aiEnv.ON_AI_APP_KEY))throw Error('INVALID_SERVER_AI_CONFIGURATION');
   const nativeHost=nativeConfiguration?createNativeHostContext(nativeConfiguration):null;
   // c2(#978): host 가 sdpActionStartup({databasePath, policy})을 주면, 이 서버가 만든 SDP host engine 과 genuine native host 를
@@ -322,7 +324,14 @@ export function createOnServer(serverOptions={}) {
     let supportDeadline;
     const disconnect=()=>lifetime.abort();
     res.once('close',disconnect);req.once('aborted',disconnect);
-    const requestTimer=setTimeout(()=>{requestTimedOut=true;lifetime.abort();},requestTimeoutMs);
+    const aiDeadlineRoute=req.method==='POST'&&['/api/ai/check','/api/ai/explain','/api/learner-support/gpt'].includes(req.url);
+    const requestLimit=aiDeadlineRoute?aiRequestTimeoutMs:requestTimeoutMs;
+    const requestTimer=setTimeout(()=>{requestTimedOut=true;lifetime.abort();},requestLimit);
+    if(aiDeadlineRoute&&Number.isSafeInteger(aiTimeoutMs)&&aiTimeoutMs>0&&aiTimeoutMs<=420000){
+      const routeLimit=Math.min(aiTimeoutMs,requestLimit);
+      supportDeadline={wall:requestStartedAt.wall+routeLimit,monotonic:requestStartedAt.monotonic+routeLimit};
+      supportTimer=setTimeout(()=>{requestTimedOut=true;lifetime.abort();},routeLimit);
+    }
     function assertAlive(){if(supportDeadline&&(Date.now()>=supportDeadline.wall||performance.now()>=supportDeadline.monotonic)){requestTimedOut=true;lifetime.abort();}if(requestTimedOut)throw engineError('REQUEST_TIMEOUT','');if(lifetime.signal.aborted||res.destroyed)throw engineError('REQUEST_CANCELLED','');}
     async function bounded(work){
       assertAlive();let cancel;
@@ -464,13 +473,12 @@ export function createOnServer(serverOptions={}) {
         send(projected.status,projected.body);return;
       }
       if(req.method==='POST'&&url.pathname==='/api/ai/explain'&&nativeHost){
-        if(!Number.isSafeInteger(aiTimeoutMs)||aiTimeoutMs<=0||aiTimeoutMs>120000){
+        if(!Number.isSafeInteger(aiTimeoutMs)||aiTimeoutMs<=0||aiTimeoutMs>420000){
           send(503,{ok:false,error:{code:'WB_CLCO_INVALID_LIMIT',message:aiErrorMessages.WB_CLCO_INVALID_LIMIT,retryable:false}});return;
         }
-        const routeLimit=Math.min(aiTimeoutMs,requestTimeoutMs);
+        const routeLimit=Math.min(aiTimeoutMs,requestLimit);
         supportDeadline={wall:requestStartedAt.wall+routeLimit,monotonic:requestStartedAt.monotonic+routeLimit};
         const remaining=()=>{assertAlive();return Math.max(1,Math.floor(Math.min(supportDeadline.wall-Date.now(),supportDeadline.monotonic-performance.now())));};
-        supportTimer=setTimeout(()=>{requestTimedOut=true;lifetime.abort();},remaining());
         let nativeOperation=null,sourceOperation=null;
         const sourceCall=async work=>{try{return await bounded(work);}catch(error){assertAlive();if(['REQUEST_TIMEOUT','REQUEST_CANCELLED'].includes(error?.code))throw error;throw engineError('ON_AI_PROVISIONING_PENDING','');}};
         try{
@@ -545,14 +553,13 @@ export function createOnServer(serverOptions={}) {
       }
       if(req.method==='POST'&&url.pathname==='/api/ai/check'&&nativeHost){
         nativeAiCheck=true; // 이 요청의 바깥 catch 도 같은 retryable 정책을 쓴다(서버가 정한 표시, 요청마다 새로 만든다).
-        if(!Number.isSafeInteger(aiTimeoutMs)||aiTimeoutMs<=0||aiTimeoutMs>120000){
+        if(!Number.isSafeInteger(aiTimeoutMs)||aiTimeoutMs<=0||aiTimeoutMs>420000){
           send(503,{ok:false,error:{code:'WB_CLCO_INVALID_LIMIT',message:aiErrorMessages.WB_CLCO_INVALID_LIMIT,retryable:false}});return;
         }
         // One deadline covers the body, original native operation, vault, models and every recheck.
-        const routeLimit=Math.min(aiTimeoutMs,requestTimeoutMs);
+        const routeLimit=Math.min(aiTimeoutMs,requestLimit);
         supportDeadline={wall:requestStartedAt.wall+routeLimit,monotonic:requestStartedAt.monotonic+routeLimit};
         const remaining=()=>{assertAlive();return Math.max(1,Math.floor(Math.min(supportDeadline.wall-Date.now(),supportDeadline.monotonic-performance.now())));};
-        supportTimer=setTimeout(()=>{requestTimedOut=true;lifetime.abort();},remaining());
         let nativeOperation=null;
         try{
           if(Number(req.headers['content-length']??0)>8192)throw engineError('REQUEST_TOO_LARGE','',413);
@@ -618,16 +625,17 @@ export function createOnServer(serverOptions={}) {
         assertAlive();send(200,{ok:true,data:guide});return;
       }
       if(req.method==='POST'&&url.pathname==='/api/learner-support/gpt'){
-        if(!Number.isSafeInteger(aiTimeoutMs)||aiTimeoutMs<=0||aiTimeoutMs>120000){
+        if(!Number.isSafeInteger(aiTimeoutMs)||aiTimeoutMs<=0||aiTimeoutMs>420000){
           send(503,{ok:false,error:{code:'WB_CLCO_INVALID_LIMIT',message:aiErrorMessages.WB_CLCO_INVALID_LIMIT,retryable:false}});return;
         }
         // One route deadline includes body, host identity, vault, pre/post auth and transport.
-        supportDeadline={wall:Date.now()+aiTimeoutMs,monotonic:performance.now()+aiTimeoutMs};
-        supportTimer=setTimeout(()=>{requestTimedOut=true;lifetime.abort();},aiTimeoutMs);
+        const routeLimit=Math.min(aiTimeoutMs,requestLimit);
+        supportDeadline={wall:requestStartedAt.wall+routeLimit,monotonic:requestStartedAt.monotonic+routeLimit};
+        const remaining=()=>{assertAlive();return Math.max(1,Math.floor(Math.min(supportDeadline.wall-Date.now(),supportDeadline.monotonic-performance.now())));};
         if(Number(req.headers['content-length']??0)>8192)throw engineError('REQUEST_TOO_LARGE','',413);
         const input=await bounded(()=>jsonBody(req,['problemKind'],(_key,value)=>isLearnerSupportProblemKind(value)));
         let nativeOperation=null;
-        if(nativeHost){try{nativeOperation=await bounded(signal=>openNativeHostOperation(nativeHost,{signal,timeoutMs:aiTimeoutMs}));}catch{throw engineError('ON_AI_PROVISIONING_PENDING','');}}
+        if(nativeHost){try{nativeOperation=await bounded(signal=>openNativeHostOperation(nativeHost,{signal,timeoutMs:remaining()}));}catch{throw engineError('ON_AI_PROVISIONING_PENDING','');}}
         try{
         const readHost=async(signal=lifetime.signal)=>{
           if(nativeHost){if(signal?.aborted)throw engineError('REQUEST_CANCELLED','');try{const value=await bounded(()=>readNativeHostOperation(nativeHost,nativeOperation));assertAlive();return value;}catch(error){if(['REQUEST_TIMEOUT','REQUEST_CANCELLED'].includes(error?.code))throw error;throw engineError('ON_AI_PROVISIONING_PENDING','');}}
@@ -642,7 +650,7 @@ export function createOnServer(serverOptions={}) {
             ||!Number.isSafeInteger(hostIdentity.identityVersion)||hostIdentity.identityVersion<=0)throw engineError('ON_AI_PROVISIONING_PENDING','');
           assertAlive();return hostIdentity;
         };
-        const identity=await readHost(),service=nativeHost?createVaultOnAiService({enabled:true,vault:createNativeOperationVault(nativeHost,nativeOperation),timeoutMs:aiTimeoutMs,
+        const identity=await readHost(),service=nativeHost?createVaultOnAiService({enabled:true,vault:createNativeOperationVault(nativeHost,nativeOperation),timeoutMs:remaining(),
           appAuthorization:nativeConfiguration.fetchImpl?{fetchImpl:nativeConfiguration.fetchImpl}:{}}):mappedService();
         const observation=readLocalLearnerSupportObservation(mode,service);
         const prepared=prepareLearnerSupportRequest(input,observation,{signal:lifetime.signal});

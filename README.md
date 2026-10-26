@@ -1,5 +1,62 @@
 # BYTE BACK 방어전 시작 틀 R5
 
+## 20단계 제출 준비 (2026-10-26)
+
+`on-client/student/extension.mjs`의 `renderVulnerabilities`를 구현했습니다.
+idle·loading·error·ok와 전체 조회 상태 complete·partial·not_checked·
+not_configured·unverifiable을 원래 값과 한국어 설명으로 구분합니다.
+전달된 lockfileVersion·lockfileHash·checkedAt을 표시하며, 패키지별
+이름·정확한 설치 버전·상태·출처·조회 시각과 취약점 ID·modified를
+표시합니다. 각 행에 data-student-package-name과
+data-student-package-version을 붙입니다. 버전 범위는 설치 버전으로
+표시하지 않습니다. 일부 조회 실패로 unverifiable이 되어도 이미 받은
+취약점 ID와 수정 시각을 보존합니다. none_found는 조회 범위·시점에서
+알려진 항목이 없다는 의미이며 앱 전체의 안전을 보장하지 않습니다.
+
+호출마다 createElement·textContent로 새 DOM을 반환하므로 조회 중·
+오류·초기화에 이전 표를 현재 결과로 남기지 않습니다. 조회·취소·수동
+재조회·요청 세대 검사와 늦은 응답 차단은 기존 제공 화면이 담당합니다.
+학생 함수에는 요청·버튼·자동 재시도를 추가하지 않았습니다. 앞 단계 함수,
+제공 서버·public/app.js·판정 코드·인증 설정·공개 가상 자료를 보존했고,
+의존성 버전·조회 대상 경로·허용 패키지 설정을 변경하지 않았습니다.
+
+프로젝트 최상위 PowerShell에서 `npm.cmd --prefix .\on-client run check`로
+문법을 확인합니다. 앱은 기존 실행 인스턴스를 사용합니다. 중지 상태일 때만
+`powershell -NoProfile -ExecutionPolicy Bypass -File .\on-client\tools\start-alekov.ps1`
+로 실행합니다. `http://127.0.0.1:5189/`의 보호 현황 → 「설치 패키지 조회」
+→ 학생 패키지 조회 표시에서 확인합니다. 정상 결과는 전달된 현재 상태와
+값만 표시되는 것입니다. 미조회·조회 실패를 취약점 없음으로 표시하거나,
+취소·새 요청 뒤 이전 표와 늦은 응답을 다시 표시해서는 안 됩니다.
+
+문법 검사·변경 차이 검사와 네트워크 없는 모의 DOM·요청 흐름 검사
+70개를 통과했습니다. 루트 package-lock.json의 jose 6.2.12와 설치된
+메타데이터의 일치를 확인한 뒤 해당 버전을 모의 입력으로 사용했습니다.
+상태별 초기화·정확한 버전·출처·시각·부분 결과 보존·새 해시 교체·문자열
+텍스트 처리, 기존 제공 요청 흐름의 취소 후 늦은 응답 차단·오류 뒤 수동
+재조회·최신 요청 우선·새로고침과 앞 단계 함수 보존을 확인했습니다.
+검사 도구는 Git에서 제외한 local-only에 있습니다. 이 검사는 가상 입력을
+사용한 자기 점검이며 실제 OSV 조회나 심판 판정이 아닙니다.
+
+실제 로컬 화면에서는 조회 전(idle)과 「설치 패키지 조회」 뒤
+not_configured·조회 시각·빈 결과를 확인했습니다. 현재 조회 대상 프로젝트가
+설정되지 않아 이 상태가 정상입니다. 실제 OSV 조회 결과·설치 버전 화면
+대조·진행 중 취소·네트워크 탭의 오류 후 재조회는 미확인입니다. 포트가
+이미 사용 중(EADDRINUSE)이어서 새 실행은 중단됐고 기존 앱을 사용했습니다.
+실제 AI 요청·보안 조치·공식 20단계 제출·심판 판정은 실행하지 않았습니다.
+
+`aleph.config.json`은 별도 메모 앱의 12단계 설정을 유지합니다. 로그인
+발급자·대상·JWKS·원본 API·허용 경로·복구 경로를 기존 구현과 대조했습니다.
+등록 운영 별칭의 /aleph.json에서 단계·저장소·judgeIssuer·원본 API·허용
+경로·복구 경로의 일치를 확인했습니다. 공개 자료의 publicAppUrl은 배포
+고유 주소이며 설정의 운영 별칭과 다릅니다. identityProvider는 공개 자료에
+없으므로 배포 로그인 검증으로 기록하지 않습니다. 이번 단계의 재배포는
+아닙니다. RULE_IDS 여섯 개는 구현 분기에 대응하므로 유지합니다.
+judgeIssuer와 기존 자기 점검을 보존했고, 1~12단계용 npm run bundle은
+실행하지 않았습니다. 20단계 원문 JSON은 공식 원문 전달 도구로 프로젝트
+밖에 만들며 동일 저장소·커밋을 입력합니다. 입력·JSON 준비는 제출·통과를
+의미하지 않습니다. 비밀값·실제 개인정보·메모 본문·원문 JSON과
+bundle-notes.json·artifacts/submission.json은 이번 커밋에 포함하지 않습니다.
+
 ## 19단계 제출 준비 (2026-10-26)
 
 `on-client/student/extension.mjs`의 `renderAction`을 구현했습니다. 상태 11종을

@@ -1,5 +1,36 @@
 # BYTE BACK 방어전 시작 틀 R5
 
+## 21단계 학생용 실행 설명서 (2026-10-27)
+
+헤임달의 목적·기능·지원 환경·확인한 버전·실제 폴더·실행 및 종료 절차·
+글로 된 시스템 구성도·학생/제공 코드 경계·오류별 확인 순서를
+[학생용 실행 설명서](docs/STUDENT_RUNBOOK.md)에 정리했습니다.
+13~20단계 화면과 기존 메모 앱을 보존하고 문서만 추가했습니다.
+
+Git 최상위 폴더의 새 PowerShell에서
+`npm.cmd --prefix .\on-client run check`로 문법을 검사합니다. 실제 실행은
+`powershell -NoProfile -ExecutionPolicy Bypass -File .\on-client\tools\start-alekov.ps1`
+이며 브라우저 주소는 `http://127.0.0.1:5189/`입니다. 「보호 현황」에서
+현재 상태를 확인합니다. 정상은 미연결·미조회를 그 상태대로 표시하는 것이고,
+ACK·unknown·효과 관측 없는 succeeded를 조치 성공으로 표시하면 안 됩니다.
+
+이번 문법 검사는 통과했습니다. Node v24.21.0, npm 11.19.0,
+Git 2.55.0.windows.5와 PowerShell 버전 출력을 확인했습니다. 제공 실행 도구의
+연결 없는 실행은 20초 준비 확인에 실패했고, 대체 npm start는 시작 로그를
+출력했습니다. 도구 환경의 HTTP 접근은 EACCES 또는 시간 초과, 브라우저도
+접속 시간 초과여서 실제 화면·정상/거부 HTTP 응답·종료 후 재실행은 미확인입니다.
+그 실행은 도구 세션에서 Ctrl+C로 종료했습니다. 외부 AI·보안 조치·OSV 조회·
+21단계 제출·심판 판정은 실행하지 않았습니다. 설명서에 미확인 범위를 남겼습니다.
+
+기존 aleph.config.json의 12단계·배포·발급자·허용 경로·원본 API·복구 경로와
+판정 RULE_IDS를 기존 구현과 대조하고 유지했습니다. judgeIssuer를 보존했고
+이번 실제 배포 응답·로그인은 미검증입니다. 기존 공격 자기 점검·공개 자료도
+유지하며 1~12단계용 npm run bundle은 실행하지 않습니다. 21단계는 현재 포털의
+원문 도구로 **이번 커밋**을 프로젝트 밖 JSON으로 준비하고 같은 저장소·40자리
+커밋을 입력합니다. 제공 문서의 옛 판정 안내와 현재 포털의 차이는 설명서에
+기록했습니다. JSON 생성·입력은 제출·통과가 아니며 원문 JSON·비밀값·실제
+개인정보·메모 본문·bundle-notes.json·artifacts/submission.json은 커밋하지 않습니다.
+
 ## 20단계 제출 준비 (2026-10-26)
 
 `on-client/student/extension.mjs`의 `renderVulnerabilities`를 구현했습니다.

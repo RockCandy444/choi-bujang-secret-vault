@@ -1,5 +1,29 @@
 # BYTE BACK 방어전 시작 틀 R5
 
+## 22단계 최종 인수인계 준비 (2026-10-27)
+
+[최종 인수인계 기록](docs/STAGE22_HANDOVER.md)에 별도 로컬 복제본의 환경·
+실행 절차·13~21단계 관찰·데이터 보존/복원 계획·미확인 항목을 정리했습니다.
+현재는 `stage22-verification.1` 검증 중인 버전이며 제공 앱은 0.2.14입니다.
+이번 변경은 README와 학생 문서뿐이며 기존 코드·자료·Git·학습 DB를 보존합니다.
+
+새 복제본 최상위에서
+`powershell -NoProfile -ExecutionPolicy Bypass -File .\on-client\tools\start-alekov.ps1 -NoNativeHost -Port 5192`
+로 실행하고 `http://127.0.0.1:5192/`의 「보호 현황」을 엽니다.
+보조 도구로 문법 검사·로컬 실행·종료·재실행과 화면을 확인했습니다.
+정상 결과는 HTTP 200과 연결 없음·패키지 not_configured의 정직한 표시입니다.
+미연결 신원 조회는 503 ENGINE_NOT_CONNECTED, 다른 출처 POST는
+403 ORIGIN_REJECTED를 확인했습니다. 실제 AI·SDP/XDR·조치 효과·OSV 조회,
+새 PC 설치·DB 복원·학생 독립 재현은 미확인입니다. 과거 모의 점검과 포털
+통과를 이번 최종 커밋의 운영 실행 성공으로 합산하지 않습니다.
+
+기존 aleph.config.json의 12단계·배포·발급자·허용 경로·원본 API·복구 경로와
+RULE_IDS를 기존 소스와 대조하고 유지합니다. judgeIssuer를 보존하며 이번
+재배포는 없습니다. 22단계는 공식 원문 도구로 같은 최종 커밋의 JSON을
+프로젝트 밖에 준비합니다. 저장소·커밋 입력과 JSON 준비는 제출·통과가 아닙니다.
+원문 JSON·비밀값·실제 개인정보·메모 본문·bundle-notes.json·
+artifacts/submission.json은 커밋하지 않고 1~12단계용 npm run bundle도 실행하지 않습니다.
+
 ## 21단계 학생용 실행 설명서 (2026-10-27)
 
 헤임달의 목적·기능·지원 환경·확인한 버전·실제 폴더·실행 및 종료 절차·

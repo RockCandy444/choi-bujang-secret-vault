@@ -5,6 +5,7 @@ import {resolve} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {types} from 'node:util';
+import {createLocalMonitor} from './local-monitor.mjs';
 import {createActionService} from './actions/service.mjs';
 import {createSdpActionConfiguration} from './actions/sdp-action-engine.mjs';
 import {readActionStartupConfiguration} from './actions/action-startup-config.mjs';
@@ -24,7 +25,7 @@ const root=fileURLToPath(new URL('../',import.meta.url));
 const id=value=>typeof value==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/.test(value);
 const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 const text=value=>typeof value==='string'&&value.length<=2000;
-const files=new Map([['/','public/index.html'],['/index.html','public/index.html'],['/app.js','public/app.js'],['/style.css','public/style.css'],['/vulnerabilities-view.mjs','public/vulnerabilities-view.mjs'],['/student/extension.mjs','student/extension.mjs'],
+const files=new Map([['/','student/dashboard.html'],['/dashboard','student/dashboard.html'],['/agent','public/index.html'],['/index.html','public/index.html'],['/student/dashboard.mjs','student/dashboard.mjs'],['/student/dashboard.css','student/dashboard.css'],['/app.js','public/app.js'],['/style.css','public/style.css'],['/vulnerabilities-view.mjs','public/vulnerabilities-view.mjs'],['/student/extension.mjs','student/extension.mjs'],
   ['/ai-connect.mjs','public/ai-connect.mjs'],
   ...['alekov-ai-explain','alekov-app-icon','alekov-connect-approval','alekov-connection-unknown','alekov-empty-records'].map(name=>[`/assets/alekov/${name}.webp`,`public/assets/alekov/${name}.webp`])]);
 const connectionRoutes=new Map(['start','finish','status','cancel'].map(kind=>[`/api/ai/connect/${kind}`,kind]));
@@ -313,6 +314,7 @@ export function createOnServer(serverOptions={}) {
       return snapshot;
     }:undefined});
   const meta=()=>({mode,checkedAt:clock().toISOString(),starterVersion:'0.1.0'});
+  const readLocalStatus=createLocalMonitor();
   const server=http.createServer(async(req,res)=>{
     // Register before identity/events reads: disconnects during preparation must
     // cancel the later AI operation, even when an adapter ignores cancellation.
@@ -368,6 +370,11 @@ export function createOnServer(serverOptions={}) {
       if(url.search)throw engineError('QUERY_REJECTED','지원하지 않는 요청입니다.',400);
       if(url.pathname.startsWith('/api/')&&req.headers['sec-fetch-site']==='cross-site')throw engineError('ORIGIN_REJECTED','');
       if(req.method==='POST'&&req.headers.origin!==`http://${host}`)throw engineError('ORIGIN_REJECTED','앱 화면에서 다시 요청하세요.',403);
+      if(url.pathname==='/api/local-status'){
+        if(req.method!=='GET'){send(405,{ok:false,error:{code:'METHOD_NOT_ALLOWED',message:'읽기 전용 조회입니다.',retryable:false}});return;}
+        if(req.headers.origin!==undefined&&req.headers.origin!==`http://${host}`)throw engineError('ORIGIN_REJECTED','',403);
+        const data=await bounded(()=>readLocalStatus());send(200,{ok:true,data});return;
+      }
       if(url.pathname.startsWith('/api/native-login/')){
         const kind=url.pathname.slice('/api/native-login/'.length);
         if(req.method!=='POST'||!['start','status','redeem','current','cancel'].includes(kind)){send(404,{ok:false,error:{code:'NOT_FOUND',message:'지원하지 않는 주소입니다.',retryable:false}});return;}

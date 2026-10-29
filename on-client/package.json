@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.mjs",
     "demo": "node src/server.mjs --demo",
-    "check": "node --check student/extension.mjs"
+    "check": "node --check student/extension.mjs && node --check student/dashboard.mjs && node --check src/local-monitor.mjs && node --check src/server.mjs",
+    "test:dashboard": "node --test test/local-monitor.test.mjs"
   },
   "engines": {
     "node": "24.19.0"
